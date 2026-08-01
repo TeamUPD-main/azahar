@@ -1,0 +1,89 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Games" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Spiele" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Juegos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jeux" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Giochi" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゲーム" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "게임" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Jogos" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Игры" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "游戏" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "遊戲" } }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Paramètres" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Impostazioni" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "설정" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Configurações" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Настройки" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "設定" } }
+      }
+    },
+    "Resume" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fortsetzen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reanudar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Reprendre" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Riprendi" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "再開" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "재개" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Retomar" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Продолжить" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "繼續" } }
+      }
+    },
+    "Exit Game" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Spiel beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir del juego" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter le jeu" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Esci dal gioco" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゲーム終了" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "게임 종료" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Sair do jogo" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выйти из игры" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出游戏" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "離開遊戲" } }
+      }
+    },
+    "NetPlay" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Netzwerkspiel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "NetPlay" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jeu en réseau" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "NetPlay" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ネットプレイ" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "네트플레이" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "NetPlay" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сетевая игра" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "网络对战" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "網路對戰" } }
+      }
+    },
+    "No games found" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Spiele gefunden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se encontraron juegos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun jeu trouvé" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessun gioco trovato" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゲームが見つかりません" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "게임을 찾을 수 없습니다" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Nenhum jogo encontrado" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Игры не найдены" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "未找到游戏" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "找不到遊戲" } }
+      }
+    }
+  }
+}

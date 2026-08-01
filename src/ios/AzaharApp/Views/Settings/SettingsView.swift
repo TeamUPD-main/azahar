@@ -1,0 +1,290 @@
+// Copyright Citra Emulator Project / Azahar Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
+
+import SwiftUI
+
+/// Settings screen (equivalent to Android's SettingsActivity/SettingsFragment).
+struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                settingsSection("Core", icon: "cpu") {
+                    SettingToggle(
+                        title: "Use CPU JIT",
+                        description: "Faster but uses more memory",
+                        group: "Core", key: "use_cpu_jit"
+                    )
+                    SettingSlider(
+                        title: "CPU Clock Percentage",
+                        description: "Default 100%",
+                        group: "Core", key: "cpu_clock_percentage",
+                        range: 25...400, step: 1
+                    )
+                }
+
+                settingsSection("Renderer", icon: "display") {
+                    SettingPicker(
+                        title: "Graphics API",
+                        group: "Renderer", key: "graphics_api",
+                        options: [
+                            (1, "Vulkan (recommended)")
+                        ]
+                    )
+                    SettingToggle(
+                        title: "Hardware Shaders",
+                        group: "Renderer", key: "use_hw_shader"
+                    )
+                    SettingSlider(
+                        title: "Resolution Scale",
+                        group: "Renderer", key: "resolution_factor",
+                        range: 0...10, step: 0.5
+                    )
+                    SettingToggle(
+                        title: "VSync",
+                        group: "Renderer", key: "use_vsync"
+                    )
+                    SettingToggle(
+                        title: "Skip Duplicate Frames",
+                        group: "Renderer", key: "use_skip_duplicate_frames"
+                    )
+                    SettingToggle(
+                        title: "Disk Shader Cache",
+                        group: "Renderer", key: "use_disk_shader_cache"
+                    )
+                    SettingToggle(
+                        title: "Accurate Multiplication",
+                        group: "Renderer", key: "shaders_accurate_mul"
+                    )
+                }
+
+                settingsSection("Layout", icon: "rectangle.split.2x2") {
+                    SettingPicker(
+                        title: "Screen Layout",
+                        group: "Layout", key: "layout_option",
+                        options: [
+                            (0, "Original"),
+                            (1, "Single Screen"),
+                            (2, "Large Screen"),
+                            (3, "Side by Side"),
+                            (4, "Hybrid"),
+                            (5, "Custom"),
+                        ]
+                    )
+                    SettingToggle(
+                        title: "Swap Screens",
+                        group: "Layout", key: "swap_screen"
+                    )
+                    SettingSlider(
+                        title: "Screen Gap",
+                        group: "Layout", key: "screen_gap",
+                        range: 0...50, step: 1
+                    )
+                    SettingSlider(
+                        title: "Large Screen Proportion",
+                        group: "Layout", key: "large_screen_proportion",
+                        range: 1.0...5.0, step: 0.25
+                    )
+                }
+
+                settingsSection("Audio", icon: "speaker.wave.2") {
+                    SettingToggle(
+                        title: "Enable Audio",
+                        group: "Audio", key: "audio_emulation"
+                    )
+                    SettingSlider(
+                        title: "Volume",
+                        group: "Audio", key: "volume",
+                        range: 0...1, step: 0.05
+                    )
+                    SettingToggle(
+                        title: "Enable Audio Stretching",
+                        group: "Audio", key: "enable_audio_stretching"
+                    )
+                    SettingToggle(
+                        title: "Simulate Headphones",
+                        group: "Audio", key: "simulate_headphones_plugged"
+                    )
+                }
+
+                settingsSection("System", icon: "gear") {
+                    SettingPicker(
+                        title: "System Model",
+                        group: "System", key: "is_new_3ds",
+                        options: [(0, "Old 3DS"), (1, "New 3DS")]
+                    )
+                    SettingPicker(
+                        title: "Region",
+                        group: "System", key: "region_value",
+                        options: [
+                            (-1, "Auto-select"),
+                            (0, "Japan"), (1, "USA"), (2, "Europe"),
+                            (3, "Australia"), (4, "China"), (5, "Korea"),
+                            (6, "Taiwan"),
+                        ]
+                    )
+                    SettingPicker(
+                        title: "Init Clock",
+                        group: "System", key: "init_clock",
+                        options: [(0, "System clock"), (1, "Fixed time")]
+                    )
+                }
+
+                settingsSection("Stereoscopic 3D", icon: "scope") {
+                    SettingPicker(
+                        title: "3D Rendering",
+                        group: "Renderer", key: "render_3d",
+                        options: [
+                            (0, "Off"), (1, "Half-width Side by Side"),
+                            (2, "Full-width Side by Side"),
+                            (3, "Anaglyph"), (4, "Interlaced"),
+                        ]
+                    )
+                    SettingSlider(
+                        title: "3D Factor",
+                        group: "Renderer", key: "factor_3d",
+                        range: 0...1, step: 0.05
+                    )
+                }
+
+                settingsSection("Storage", icon: "internaldrive") {
+                    SettingToggle(
+                        title: "Virtual SD Card",
+                        group: "Data Storage", key: "use_virtual_sd"
+                    )
+                    SettingToggle(
+                        title: "Compress CIA Installs",
+                        group: "Storage", key: "compress_cia_installs"
+                    )
+                }
+
+                settingsSection("Textures", icon: "photo") {
+                    SettingToggle(title: "Custom Textures", group: "Utility", key: "custom_textures")
+                    SettingToggle(title: "Preload Textures", group: "Utility", key: "preload_textures")
+                    SettingToggle(title: "Dump Textures", group: "Utility", key: "dump_textures")
+                }
+
+                settingsSection("Debugging", icon: "ant") {
+                    SettingToggle(title: "Renderer Debug", group: "Debugging", key: "renderer_debug")
+                    SettingToggle(title: "Frame Time Recording", group: "Debugging", key: "record_frame_times")
+                }
+
+                settingsSection("About", icon: "info.circle") {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(String(cString: az_get_version_string()))
+                            .foregroundStyle(.secondary)
+                    }
+                    NavigationLink("Licenses") {
+                        Text("GPLv2+")
+                            .navigationTitle("License")
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func settingsSection(_ title: String, icon: String,
+                                  @ViewBuilder content: () -> some View) -> some View {
+        Section {
+            content()
+        } header: {
+            Label(title, systemImage: icon)
+        }
+    }
+}
+
+// MARK: - Reusable setting components
+
+/// A toggle that reads/writes a boolean setting via the bridge.
+struct SettingToggle: View {
+    let title: String
+    var description: String? = nil
+    let group: String
+    let key: String
+    @State private var isOn: Bool = false
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading) {
+                Text(title)
+                if let description {
+                    Text(description).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: isOn) { _, newValue in
+            az_setting_set_bool(group, key, newValue)
+        }
+        .onAppear {
+            isOn = az_setting_get_bool(group, key, false)
+        }
+    }
+}
+
+/// A picker that reads/writes an integer setting via the bridge.
+struct SettingPicker: View {
+    let title: String
+    let group: String
+    let key: String
+    let options: [(Int, String)]
+    @State private var selection: Int = 0
+
+    var body: some View {
+        Picker(title, selection: $selection) {
+            ForEach(options, id: \.0) { value, label in
+                Text(label).tag(value)
+            }
+        }
+        .onChange(of: selection) { _, newValue in
+            az_setting_set_int(group, key, Int32(newValue))
+        }
+        .onAppear {
+            selection = Int(az_setting_get_int(group, key, Int32(options.first?.0 ?? 0)))
+        }
+    }
+}
+
+/// A slider that reads/writes a float/double setting via the bridge.
+struct SettingSlider: View {
+    let title: String
+    var description: String? = nil
+    let group: String
+    let key: String
+    let range: ClosedRange<Double>
+    var step: Double = 1
+    @State private var value: Double = 0
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(String(format: "%.1f", value))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            if let description {
+                Text(description).font(.caption).foregroundStyle(.secondary)
+            }
+            Slider(value: $value, in: range, step: step)
+                .onChange(of: value) { _, newValue in
+                    az_setting_set_float(group, key, newValue)
+                }
+                .onAppear {
+                    value = az_setting_get_float(group, key, range.lowerBound)
+                }
+        }
+    }
+}

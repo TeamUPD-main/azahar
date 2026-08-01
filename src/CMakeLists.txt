@@ -224,6 +224,10 @@ if (ANDROID AND NOT ENABLE_LIBRETRO)
     target_include_directories(citra-android PRIVATE android/app/src/main)
 endif()
 
+if (IOS AND NOT ENABLE_LIBRETRO)
+    add_subdirectory(ios)
+endif()
+
 if (ENABLE_WEB_SERVICE)
     add_subdirectory(web_service)
 endif()

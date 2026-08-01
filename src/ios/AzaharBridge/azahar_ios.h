@@ -1,0 +1,412 @@
+// Copyright Citra Emulator Project / Azahar Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
+
+#pragma once
+
+// C API bridging the Azahar C++ core to the iOS Swift frontend.
+// This is the iOS equivalent of the Android JNI layer (src/android/app/src/main/jni).
+// All functions are callable from Swift through the generated bridging header.
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+// ---------------------------------------------------------------------------
+// Button codes (must match InputManager::ButtonType in the Android frontend)
+// ---------------------------------------------------------------------------
+enum {
+    AZ_BUTTON_A = 700,
+    AZ_BUTTON_B = 701,
+    AZ_BUTTON_X = 702,
+    AZ_BUTTON_Y = 703,
+    AZ_BUTTON_START = 704,
+    AZ_BUTTON_SELECT = 705,
+    AZ_BUTTON_HOME = 706,
+    AZ_BUTTON_ZL = 707,
+    AZ_BUTTON_ZR = 708,
+    AZ_DPAD_UP = 709,
+    AZ_DPAD_DOWN = 710,
+    AZ_DPAD_LEFT = 711,
+    AZ_DPAD_RIGHT = 712,
+    AZ_STICK_LEFT = 713,
+    AZ_STICK_LEFT_UP = 714,
+    AZ_STICK_LEFT_DOWN = 715,
+    AZ_STICK_LEFT_LEFT = 716,
+    AZ_STICK_LEFT_RIGHT = 717,
+    AZ_STICK_C = 718,
+    AZ_STICK_C_UP = 719,
+    AZ_STICK_C_DOWN = 720,
+    AZ_STICK_C_LEFT = 771,
+    AZ_STICK_C_RIGHT = 772,
+    AZ_TRIGGER_L = 773,
+    AZ_TRIGGER_R = 774,
+    AZ_BUTTON_DEBUG = 781,
+    AZ_BUTTON_GPIO14 = 782,
+};
+
+// Core error codes (mirror NativeLibrary.CoreError)
+enum {
+    AZ_CORE_ERROR_SUCCESS = 0,
+    AZ_CORE_ERROR_NOT_INITIALIZED = 1,
+    AZ_CORE_ERROR_GET_LOADER = 2,
+    AZ_CORE_ERROR_SYSTEM_MODE = 3,
+    AZ_CORE_ERROR_LOADER = 4,
+    AZ_CORE_ERROR_LOADER_ENCRYPTED = 5,
+    AZ_CORE_ERROR_LOADER_INVALID_FORMAT = 6,
+    AZ_CORE_ERROR_LOADER_GBA_TITLE = 7,
+    AZ_CORE_ERROR_LOADER_PATCHES = 8,
+    AZ_CORE_ERROR_LOADER_PATCHES_INVALID_TITLE = 9,
+    AZ_CORE_ERROR_SYSTEM_FILES = 10,
+    AZ_CORE_ERROR_SAVESTATE = 11,
+    AZ_CORE_ERROR_ARTIC_DISCONNECTED = 12,
+    AZ_CORE_ERROR_N3DS_APPLICATION = 13,
+    AZ_CORE_ERROR_CORE_EXCEPTION = 14,
+    AZ_CORE_ERROR_MEMORY_EXCEPTION = 15,
+    AZ_CORE_ERROR_SHUTDOWN_REQUESTED = 16,
+    AZ_CORE_ERROR_UNKNOWN = 17,
+};
+
+// Netplay status (mirror NetPlayStatus in the Android frontend)
+enum {
+    AZ_NETPLAY_SUCCESS = 0,
+    AZ_NETPLAY_UNKNOWN_ERROR = 1,
+    AZ_NETPLAY_UNABLE_TO_CONNECT = 2,
+    AZ_NETPLAY_OUTDATED_CLIENT = 3,
+    AZ_NETPLAY_OUTDATED_SERVICE = 4,
+    AZ_NETPLAY_IP_ALREADY_CONNECTED = 5,
+    AZ_NETPLAY_IP_IS_BANNED = 6,
+    AZ_NETPLAY_MAC_IS_BANNED = 7,
+    AZ_NETPLAY_CONSOLE_ID_IS_BANNED = 8,
+    AZ_NETPLAY_ROOM_FULL = 9,
+    AZ_NETPLAY_COULD_NOT_CREATE_ROOM = 10,
+    AZ_NETPLAY_WRONG_VERSION = 11,
+    AZ_NETPLAY_INVALID_PASSWORD = 12,
+    AZ_NETPLAY_ROOM_NOT_FOUND = 13,
+    AZ_NETPLAY_HOST_KICKED = 14,
+    AZ_NETPLAY_PASSWORD_REQUIRED = 15,
+    AZ_NETPLAY_NO_INTERNET = 16,
+    AZ_NETPLAY_CONSOLE_ID_IN_USE = 17,
+    AZ_NETPLAY_WRONG_ACCOUNT = 18,
+    AZ_NETPLAY_CANNOT_JOIN_ONLY_ONE_NEW3DS = 19,
+};
+
+// Compression status (mirror NativeLibrary.CompressStatus)
+enum {
+    AZ_COMPRESS_SUCCESS = 0,
+    AZ_COMPRESS_UNSUPPORTED = 1,
+    AZ_COMPRESS_ALREADY_COMPRESSED = 2,
+    AZ_COMPRESS_FAILED = 3,
+    AZ_DECOMPRESS_UNSUPPORTED = 4,
+    AZ_DECOMPRESS_NOT_COMPRESSED = 5,
+    AZ_DECOMPRESS_FAILED = 6,
+    AZ_COMPRESS_INSTALLED_APPLICATION = 7,
+};
+
+// Media type of an installed game (mirror Game.MediaType)
+enum {
+    AZ_MEDIA_TYPE_SDMC = 0,
+    AZ_MEDIA_TYPE_NAND = 1,
+};
+
+#define AZ_SAVESTATE_SLOT_COUNT 11
+#define AZ_QUICKSAVE_SLOT 0
+
+typedef struct {
+    int slot;
+    int64_t timestamp_ms;
+} az_savestate_info;
+
+typedef struct {
+    const char* path;
+    int media_type;
+} az_game_path;
+
+typedef struct {
+    const char* name;
+    const char* title;
+    const char* description;
+    int max_players;
+    int player_count;
+    bool has_password;
+    const char* game_name;
+    int64_t game_id;
+} az_room_entry;
+
+typedef struct {
+    const char* username;
+    const char* nickname;
+    int64_t console_id;
+    int64_t ban_time_ms;
+} az_player_entry;
+
+// ---------------------------------------------------------------------------
+// Lifecycle / user data
+// ---------------------------------------------------------------------------
+
+/// Sets the emulator user directory (equivalent to setUserDirectory). Should be
+/// called once at startup, before config/log creation.
+void az_set_user_directory(const char* directory);
+
+/// Reads config.ini from the user directory and applies it to Settings. If the
+/// file is missing it is created from the defaults.
+void az_create_config_file(void);
+
+/// Initializes and starts the log backend.
+void az_create_log_file(void);
+
+/// Re-reads config.ini and applies settings to the running core if powered on.
+void az_reload_settings(void);
+
+void az_log_device_info(void);
+void az_set_portrait_mode(bool portrait);
+
+// ---------------------------------------------------------------------------
+// Callbacks the Swift side registers (replaces the JNI->Java callbacks)
+// ---------------------------------------------------------------------------
+
+/// Returned values are how the core should proceed.
+typedef void (*az_on_alert_fn)(const char* title, const char* message, bool yes_no,
+                               bool* result);
+typedef void (*az_on_core_error_fn)(int error, const char* details, bool* can_continue);
+typedef void (*az_on_exit_emulation_fn)(int result_code);
+typedef void (*az_on_disk_cache_progress_fn)(int stage, int progress, int max);
+typedef void (*az_on_netplay_message_fn)(int type, const char* message);
+typedef void (*az_on_netplay_clear_chat_fn)(void);
+typedef void (*az_on_compress_progress_fn)(int64_t total, int64_t current);
+
+/// Keyboard / Mii selector results are delivered back through these functions
+/// after the Swift UI has collected user input. See az_swkbd_* / az_mii_*.
+typedef void (*az_on_swkbd_request_fn)(void);
+typedef void (*az_on_mii_request_fn)(void);
+
+void az_set_on_alert(az_on_alert_fn fn);
+void az_set_on_core_error(az_on_core_error_fn fn);
+void az_set_on_exit_emulation(az_on_exit_emulation_fn fn);
+void az_set_on_disk_cache_progress(az_on_disk_cache_progress_fn fn);
+void az_set_on_netplay_message(az_on_netplay_message_fn fn);
+void az_set_on_netplay_clear_chat(az_on_netplay_clear_chat_fn fn);
+void az_set_on_compress_progress(az_on_compress_progress_fn fn);
+void az_set_on_swkbd_request(az_on_swkbd_request_fn fn);
+void az_set_on_mii_request(az_on_mii_request_fn fn);
+
+// ---------------------------------------------------------------------------
+// Emulation control
+// ---------------------------------------------------------------------------
+
+/// Begins emulation of the given game path. This call blocks on the calling
+/// thread until emulation ends, so call it on a dedicated background thread.
+/// When it returns, inspect az_get_last_result() for how it ended.
+void az_run(const char* path);
+
+/// Returns the result code that ended the last az_run() session.
+int az_get_last_result(void);
+
+void az_pause_emulation(void);
+void az_unpause_emulation(void);
+void az_stop_emulation(void);
+bool az_is_running(void);
+bool az_is_paused(void);
+int64_t az_get_running_title_id(void);
+
+// ---------------------------------------------------------------------------
+// Framebuffer / surface
+// ---------------------------------------------------------------------------
+
+/// Hands the bridge a CAMetalLayer for the primary display. `scale` is the
+/// layer's contents scale (points-to-pixels). Call on the main thread.
+void az_emu_surface_set(void* metal_layer, float scale);
+void az_emu_surface_destroy(void);
+
+/// Hands the bridge a CAMetalLayer for the secondary (external) display.
+void az_emu_secondary_surface_set(void* metal_layer, float scale);
+void az_emu_secondary_surface_destroy(void);
+
+/// Presents the latest rendered frame. Call once per vsync from a CADisplayLink
+/// (equivalent to the Android Choreographer doFrame()).
+void az_present_frame(void);
+
+/// Informs the renderer that the framebuffer layout should be recomputed.
+void az_update_framebuffer(bool is_portrait);
+
+void az_swap_screens(bool swap_screens, int rotation);
+
+// ---------------------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------------------
+
+bool az_button_event(int button, bool pressed);
+bool az_analog_event(int analog, float x, float y);
+bool az_axis_event(int axis, float value);
+bool az_touch_event(float x, float y, bool pressed);
+void az_touch_moved(float x, float y);
+bool az_secondary_touch_event(float x, float y, bool pressed);
+void az_secondary_touch_moved(float x, float y);
+void az_release_all_keys(void);
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+/// Reads a setting from config.ini (the group/section, key and default are
+/// passed through). Returns a heap-allocated string the caller must free with
+/// az_free_string().
+char* az_setting_get_string(const char* group, const char* key, const char* default_value);
+bool az_setting_get_bool(const char* group, const char* key, bool default_value);
+long az_setting_get_int(const char* group, const char* key, long default_value);
+double az_setting_get_float(const char* group, const char* key, double default_value);
+
+/// Persists a setting to config.ini and immediately applies it to the running
+/// core when relevant.
+void az_setting_set_string(const char* group, const char* key, const char* value);
+void az_setting_set_bool(const char* group, const char* key, bool value);
+void az_setting_set_int(const char* group, const char* key, long value);
+void az_setting_set_float(const char* group, const char* key, double value);
+
+void az_set_temporary_frame_limit(double speed);
+void az_disable_temporary_frame_limit(void);
+
+// ---------------------------------------------------------------------------
+// Games / titles
+// ---------------------------------------------------------------------------
+
+int64_t az_get_title_id(const char* path);
+bool az_get_is_system_title(const char* path);
+bool az_are_keys_available(void);
+
+/// Scans the user directory for installed games. Returns the number of entries
+/// written (<= max_count).
+int az_get_installed_game_paths(az_game_path* out, int max_count);
+
+bool az_uninstall_title(int64_t title_id, int media_type);
+bool az_native_file_exists(const char* path);
+
+// System titles
+const char* az_get_home_menu_path(int region);
+int az_get_system_title_ids(int system_type, int region, int64_t* out, int max_count);
+void az_get_are_system_titles_installed(bool* out); // out[0] = old3ds, out[1] = new3ds
+void az_uninstall_system_files(bool old3ds);
+bool az_is_full_console_linked(void);
+void az_unlink_console(void);
+
+// ---------------------------------------------------------------------------
+// Save states / performance / play time
+// ---------------------------------------------------------------------------
+
+/// Returns the number of save states found, writing at most max_count entries.
+int az_get_savestate_info(az_savestate_info* out, int max_count);
+void az_save_state(int slot);
+void az_load_state(int slot);
+
+/// Fills out[0..8] with {system_fps, game_fps, emulation_speed, time_vblank_interval,
+/// time_hle_svc, time_hle_ipc, time_gpu, time_swap, time_remaining}.
+void az_get_perf_stats(double* out);
+
+void az_play_time_init(void);
+void az_play_time_start(int64_t title_id);
+void az_play_time_stop(void);
+int64_t az_play_time_get(int64_t title_id);
+int64_t az_play_time_get_current_title(void);
+
+// ---------------------------------------------------------------------------
+// Amiibo
+// ---------------------------------------------------------------------------
+
+bool az_load_amiibo(const char* path);
+void az_remove_amiibo(void);
+
+// ---------------------------------------------------------------------------
+// ROM/CIA compression
+// ---------------------------------------------------------------------------
+
+int az_compress_file(const char* input_path, const char* output_path);
+int az_decompress_file(const char* input_path, const char* output_path);
+char* az_get_recommended_extension(const char* input_path, bool compress);
+
+// ---------------------------------------------------------------------------
+// Software keyboard applet
+// ---------------------------------------------------------------------------
+
+/// Returns a heap-allocated string with the current swkbd config (see
+/// az_swkbd_config struct in azahar_ios_internal.h). The Swift side consumes it
+/// when az_on_swkbd_request is invoked.
+char* az_swkbd_get_config(void);
+
+/// Submits the software keyboard result. `button` is the index of the selected
+/// button (0-based). Returns true if the input passed validation.
+bool az_swkbd_submit(const char* text, int button);
+
+/// Cancels the currently shown software keyboard.
+void az_swkbd_cancel(void);
+
+// ---------------------------------------------------------------------------
+// Mii selector applet
+// ---------------------------------------------------------------------------
+
+/// Selects the Mii at the given index. Returns the raw Mii data (70 bytes) as a
+/// heap-allocated buffer via *out_data (caller frees with az_free_string).
+char* az_mii_select(int index);
+void az_mii_cancel(void);
+
+// ---------------------------------------------------------------------------
+// Netplay / multiplayer
+// ---------------------------------------------------------------------------
+
+void az_netplay_init(void);
+void az_netplay_shutdown(void);
+
+int az_netplay_get_public_rooms(az_room_entry* out, int max_count);
+int az_netplay_create_room(const char* ip, int port, const char* username,
+                           const char* preferred_game_name, int64_t preferred_game_id,
+                           const char* password, const char* room_name, int max_players);
+int az_netplay_join_room(const char* ip, int port, const char* username, const char* password);
+int az_netplay_get_room_info(az_room_entry* out);
+bool az_netplay_is_joined(void);
+bool az_netplay_is_hosted_room(void);
+void az_netplay_send_message(const char* message);
+void az_netplay_kick_user(const char* username);
+void az_netplay_leave_room(void);
+bool az_netplay_is_moderator(void);
+int az_netplay_get_ban_list(char** out_usernames, int max_count);
+void az_netplay_ban_user(const char* username);
+void az_netplay_unban_user(const char* username);
+
+// ---------------------------------------------------------------------------
+// Cheats
+// ---------------------------------------------------------------------------
+
+typedef struct {
+    int64_t cheat_id;
+    const char* name;
+    const char* notes;
+    bool enabled;
+} az_cheat_entry;
+
+typedef struct {
+    int64_t gate_id;
+    const char* gate_name;
+    int cheat_count;
+} az_cheat_gate_entry;
+
+/// Returns the number of cheat entries, writing at most max_count. The path
+/// points to a .txt cheat file (or NULL to load the built-in cheat database).
+int az_cheats_load(const char* path, az_cheat_entry* out, int max_count);
+bool az_cheats_set_enabled(int64_t cheat_id, bool enabled);
+bool az_cheats_apply(void);
+
+// ---------------------------------------------------------------------------
+// Misc
+// ---------------------------------------------------------------------------
+
+void az_free_string(char* str);
+
+/// Current git/build version strings.
+const char* az_get_version_string(void);
+
+#ifdef __cplusplus
+}
+#endif
