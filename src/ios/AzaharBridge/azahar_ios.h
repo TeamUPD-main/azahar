@@ -194,6 +194,12 @@ void az_set_on_compress_progress(az_on_compress_progress_fn fn);
 void az_set_on_swkbd_request(az_on_swkbd_request_fn fn);
 void az_set_on_mii_request(az_on_mii_request_fn fn);
 
+/// Global callback pointers shared across translation units (defined in
+/// ios_bridge.mm). Internal use only.
+extern az_on_alert_fn on_alert;
+extern az_on_swkbd_request_fn on_swkbd_request;
+extern az_on_mii_request_fn on_mii_request;
+
 // ---------------------------------------------------------------------------
 // Emulation control
 // ---------------------------------------------------------------------------
@@ -347,9 +353,9 @@ void az_swkbd_cancel(void);
 // Mii selector applet
 // ---------------------------------------------------------------------------
 
-/// Selects the Mii at the given index. Returns the raw Mii data (70 bytes) as a
-/// heap-allocated buffer via *out_data (caller frees with az_free_string).
-char* az_mii_select(int index);
+/// Selects the Mii at the given index (0 = Standard Mii, 1..N = user Miis).
+/// Returns true if the selection was accepted.
+bool az_mii_select(int index);
 void az_mii_cancel(void);
 
 // ---------------------------------------------------------------------------

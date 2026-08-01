@@ -18,7 +18,7 @@ namespace Camera::IOS {
 
 /// Shared state between the AVCaptureVideoDataOutput delegate (capture queue)
 /// and the emulation thread reading frames.
-struct Interface::FrameBuffer {
+struct FrameBuffer {
     std::mutex mutex;
     std::vector<u16> data;
     u32 width = 0;
@@ -120,6 +120,7 @@ Interface::Interface(const std::string& config_, const Service::CAM::Flip& flip)
 Interface::~Interface() {
     StopCapture();
     session_ptr = nullptr;
+    delegate_ptr = nullptr;
 }
 
 bool IsCameraAuthorized() {
@@ -207,7 +208,10 @@ void Interface::StartCapture() {
       [session startRunning];
     });
 
-    session_ptr = (__bridge void*)session;
+    // Transfer ownership to the C++ object so the session and delegate survive
+    // past this function (ARC would otherwise release the locals).
+    session_ptr = (__bridge_retained void*)session;
+    delegate_ptr = (__bridge_retained void*)delegate;
     LOG_INFO(Service_CAM, "Camera '{}' capturing started", config);
 }
 
@@ -215,7 +219,11 @@ void Interface::StopCapture() {
     if (!session_ptr) {
         return;
     }
-    AVCaptureSession* session = (__bridge AVCaptureSession*)session_ptr;
+    AVCaptureSession* session = (__bridge_transfer AVCaptureSession*)session_ptr;
+    AZCameraDelegate* delegate = (__bridge_transfer AZCameraDelegate*)delegate_ptr;
+    session_ptr = nullptr;
+    delegate_ptr = nullptr;
+
     dispatch_queue_t queue =
         dispatch_queue_create("org.azahar.camera.stop", DISPATCH_QUEUE_SERIAL);
     dispatch_async(queue, ^{
@@ -227,7 +235,11 @@ void Interface::StopCapture() {
           [session removeOutput:output];
       }
     });
-    session_ptr = nullptr;
+
+    // Release the delegate on its capture queue after the session stops.
+    dispatch_async(queue, ^{
+      (void)delegate;
+    });
     LOG_INFO(Service_CAM, "Camera capturing stopped");
 }
 
@@ -251,7 +263,6 @@ void Interface::SetFormat(Service::CAM::OutputFormat format_) {
 }
 
 std::vector<u16> Interface::ReceiveFrame() {
-    std::vector<u16> black_frame;
     u32 width = resolution.width;
     u32 height = resolution.height;
     if (width == 0 || height == 0) {

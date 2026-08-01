@@ -19,6 +19,10 @@ public:
     ~IOSKeyboard() override = default;
     void Execute(const Frontend::KeyboardConfig& config) override;
     void ShowError(const std::string& error) override;
+
+    const KeyboardConfig& GetKeyboardConfig() const {
+        return config;
+    }
 };
 
 } // namespace SoftwareKeyboard

@@ -42,7 +42,7 @@ target_include_directories(azahar_ios PUBLIC
 )
 
 target_link_libraries(azahar_ios PRIVATE
-    citra_common citra_core video_core audio_core input_common network
+    citra_common citra_core video_core audio_core input_common network inih
 )
 
 # ObjC++ files need ARC and the ObjC++ standard

@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #include <condition_variable>
+#include <cstdlib>
+#include <cstring>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -15,6 +17,7 @@
 #include "core/frontend/applets/default_applets.h"
 #include "ios/AzaharBridge/applets_ios.h"
 #include "ios/AzaharBridge/azahar_ios.h"
+#include "fmt/format.h"
 
 namespace {
 
@@ -122,9 +125,29 @@ void IOSMiiSelector::Setup(const Frontend::MiiSelectorConfig& config) {
 // C API — called from Swift via the bridging header
 // ---------------------------------------------------------------------------
 
+/// Serializes the current keyboard config as a lightweight JSON object so the
+/// SwiftUI keyboard can honor max length, hint text, button labels, etc.
+char* az_swkbd_get_config(void) {
+    std::string json = "{}";
+    auto& system = Core::System::GetInstance();
+    auto* keyboard =
+        static_cast<SoftwareKeyboard::IOSKeyboard*>(system.GetSoftwareKeyboard().get());
+    if (keyboard) {
+        const auto& config = keyboard->GetKeyboardConfig();
+        json = fmt::format(
+            "{{\"max_text_length\":{},\"max_digits\":{},\"multiline_mode\":{},\"hint_text\":\""
+            "{}\",\"button_count\":{}}}",
+            config.max_text_length, config.max_digits,
+            config.multiline_mode ? "true" : "false", config.hint_text, config.button_text.size());
+    }
+    char* buf = static_cast<char*>(calloc(json.size() + 1, 1));
+    memcpy(buf, json.c_str(), json.size());
+    return buf;
+}
+
 static SoftwareKeyboard::IOSKeyboard* GetActiveKeyboard() {
     return static_cast<SoftwareKeyboard::IOSKeyboard*>(
-        Core::System::GetInstance().GetSoftwareKeyboard());
+        Core::System::GetInstance().GetSoftwareKeyboard().get());
 }
 
 bool az_swkbd_submit(const char* text, int button) {

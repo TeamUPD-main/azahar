@@ -14,6 +14,8 @@
 
 namespace Camera::IOS {
 
+struct FrameBuffer;
+
 // Placeholders to mean 'use any front/back camera' (mirrors Camera::NDK::*).
 inline constexpr std::string_view FrontCameraPlaceholder = "ios:front";
 inline constexpr std::string_view BackCameraPlaceholder = "ios:back";
@@ -46,10 +48,12 @@ private:
     bool invert{};
     Service::CAM::OutputFormat format{};
 
-    struct FrameBuffer;
     std::shared_ptr<FrameBuffer> buffer;
 
-    void* session_ptr = nullptr; // AVCaptureSession* kept opaque in the .mm
+    // Retained ObjC objects (kept alive while capturing): AVCaptureSession* and
+    // the sample-buffer delegate. Managed with __bridge_retained / __bridge_transfer.
+    void* session_ptr = nullptr;
+    void* delegate_ptr = nullptr;
 };
 
 /// Factory that instantiates AVFoundation cameras. Register it with

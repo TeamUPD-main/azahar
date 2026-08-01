@@ -12,6 +12,7 @@
 
 namespace InputManager {
 
+
 enum ButtonType {
     // 3DS Controls
     N3DS_BUTTON_A = 700,

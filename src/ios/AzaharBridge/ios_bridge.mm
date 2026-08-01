@@ -10,12 +10,14 @@
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
+#include <cstring>
 #include <mutex>
 #include <string>
 
 #include <QuartzCore/QuartzCore.h>
 
 #include "common/arch.h"
+#include "common/aarch64/cpu_detect.h"
 #include "common/common_paths.h"
 #include "common/file_util.h"
 #include "common/logging/backend.h"
@@ -48,7 +50,6 @@
 #include "network/announce_multiplayer_session.h"
 #include "video_core/gpu.h"
 #include "video_core/renderer_base.h"
-#include "video_core/renderer_vulkan/vk_platform.h"
 #include "input_common/main.h"
 #include "input_common/udp/client.h"
 
@@ -74,7 +75,17 @@ float pending_primary_scale = 1.0f;
 CAMetalLayer* pending_secondary_layer = nullptr;
 float pending_secondary_scale = 1.0f;
 
-// Callbacks from the Swift frontend
+std::string inserted_cartridge;
+std::string pending_rom_path;
+
+// Forward declaration
+void RunCitra(const std::string& filepath);
+void TryShutdown();
+
+} // Anonymous namespace
+
+// Callbacks from the Swift frontend. Defined at file scope so other bridge
+// translation units (applets, etc.) can trigger them.
 az_on_alert_fn on_alert = nullptr;
 az_on_core_error_fn on_core_error = nullptr;
 az_on_exit_emulation_fn on_exit_emulation = nullptr;
@@ -82,13 +93,8 @@ az_on_disk_cache_progress_fn on_disk_cache_progress = nullptr;
 az_on_netplay_message_fn on_netplay_message = nullptr;
 az_on_netplay_clear_chat_fn on_netplay_clear_chat = nullptr;
 az_on_compress_progress_fn on_compress_progress = nullptr;
-
-std::string inserted_cartridge;
-std::string pending_rom_path;
-
-// Forward declaration
-void RunCitra(const std::string& filepath);
-void TryShutdown();
+az_on_swkbd_request_fn on_swkbd_request = nullptr;
+az_on_mii_request_fn on_mii_request = nullptr;
 
 /// C++ helper to call the Swift alert callback (synchronous, waits for result)
 bool ShowAlert(const char* title, const char* message, bool yes_no) {
@@ -142,14 +148,12 @@ void az_create_log_file(void) {
 void az_reload_settings(void) {
     Config config;
     if (Core::System::GetInstance().IsPoweredOn()) {
-        const auto app_loader = Core::System::GetInstance().GetAppLoader();
-        // Reload config and apply settings
+        Core::System::GetInstance().ApplySettings();
     }
-    Core::System::GetInstance().ApplySettings();
 }
 
 void az_log_device_info(void) {
-    LOG_INFO(Frontend, "Azahar iOS build: {} {}", Common::GetScmRev(), Common::GetScmBranch());
+    LOG_INFO(Frontend, "Azahar iOS build: {} {}", Common::g_scm_rev, Common::g_scm_branch);
     LOG_INFO(Frontend, "CPU: {}", Common::GetCPUCaps().cpu_string);
 }
 
@@ -166,8 +170,8 @@ void az_set_on_disk_cache_progress(az_on_disk_cache_progress_fn fn) { on_disk_ca
 void az_set_on_netplay_message(az_on_netplay_message_fn fn) { on_netplay_message = fn; }
 void az_set_on_netplay_clear_chat(az_on_netplay_clear_chat_fn fn) { on_netplay_clear_chat = fn; }
 void az_set_on_compress_progress(az_on_compress_progress_fn fn) { on_compress_progress = fn; }
-void az_set_on_swkbd_request(az_on_swkbd_request_fn fn) { (void)fn; }
-void az_set_on_mii_request(az_on_mii_request_fn fn) { (void)fn; }
+void az_set_on_swkbd_request(az_on_swkbd_request_fn fn) { on_swkbd_request = fn; }
+void az_set_on_mii_request(az_on_mii_request_fn fn) { on_mii_request = fn; }
 
 // ---------------------------------------------------------------------------
 // Emulation control
@@ -287,8 +291,6 @@ void az_unpause_emulation(void) {
 void az_stop_emulation(void) {
     stop_run = true;
     pause_emulation = false;
-    if (window) window->StopPresenting();
-    if (secondary_window) secondary_window->StopPresenting();
     running_cv.notify_all();
 }
 
@@ -303,7 +305,9 @@ bool az_is_paused(void) {
 int64_t az_get_running_title_id(void) {
     auto& system = Core::System::GetInstance();
     if (!system.IsPoweredOn()) return 0;
-    return static_cast<int64_t>(system.GetAppLoader().ReadProgramId());
+    u64 program_id = 0;
+    system.GetAppLoader().ReadProgramId(program_id);
+    return static_cast<int64_t>(program_id);
 }
 
 // ---------------------------------------------------------------------------
@@ -353,9 +357,8 @@ void az_emu_secondary_surface_destroy(void) {
 }
 
 void az_present_frame(void) {
-    if (stop_run.load() || pause_emulation.load()) return;
-    if (window) window->TryPresenting();
-    if (secondary_window) secondary_window->TryPresenting();
+    // Presentation is driven entirely by the renderer's own present thread via
+    // the TextureMailbox; nothing to do from the frontend display link.
 }
 
 void az_update_framebuffer(bool is_portrait) {
@@ -573,10 +576,12 @@ int az_get_installed_game_paths(az_game_path* out, int max_count) {
     // Scan SDMC titles
     std::string sdmc_base = FileUtil::GetUserPath(FileUtil::UserPath::SDMCDir) +
         "/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000";
-    FileUtil::ForeachDirectoryEntry(nullptr, sdmc_base,
-        [&](const std::string& dir, const std::string& name) {
+    FileUtil::ForeachDirectoryEntry(
+        nullptr, sdmc_base,
+        [&](u64* /*num_entries_out*/, const std::string& dir, const std::string& virtual_name) {
             if (count >= max_count) return false;
-            std::string tmd_path = dir + "/content/00000000.app";
+            std::string tmd_path =
+                dir + "/" + virtual_name + "/content/00000000.app";
             if (FileUtil::Exists(tmd_path)) {
                 auto loader = Loader::GetLoader(tmd_path);
                 if (loader) {
@@ -593,8 +598,9 @@ int az_get_installed_game_paths(az_game_path* out, int max_count) {
 
 bool az_uninstall_title(int64_t title_id, int media_type) {
     return Service::AM::UninstallProgram(
-        static_cast<Service::FS::MediaType>(media_type),
-        static_cast<u64>(title_id));
+               static_cast<Service::FS::MediaType>(media_type),
+               static_cast<u64>(title_id))
+        .IsSuccess();
 }
 
 bool az_native_file_exists(const char* path) {
@@ -622,9 +628,9 @@ int az_get_system_title_ids(int system_type, int region, int64_t* out, int max_c
 
 void az_get_are_system_titles_installed(bool* out) {
     if (!out) return;
-    auto installed = Core::AreSystemTitlesInstalled();
-    out[0] = installed.old_3ds;
-    out[1] = installed.new_3ds;
+    auto [old_3ds, new_3ds] = Core::AreSystemTitlesInstalled();
+    out[0] = old_3ds;
+    out[1] = new_3ds;
 }
 
 void az_uninstall_system_files(bool old3ds) {
@@ -648,7 +654,7 @@ int az_get_savestate_info(az_savestate_info* out, int max_count) {
     auto& system = Core::System::GetInstance();
     if (!system.IsPoweredOn()) return 0;
     u64 title_id = 0;
-    auto loader = system.GetAppLoader();
+    auto& loader = system.GetAppLoader();
     loader.ReadProgramId(title_id);
     if (title_id == 0) return 0;
 
@@ -657,8 +663,7 @@ int az_get_savestate_info(az_savestate_info* out, int max_count) {
     for (const auto& state : states) {
         if (count >= max_count) break;
         out[count].slot = state.slot;
-        out[count].timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            state.time.time_since_epoch()).count();
+        out[count].timestamp_ms = state.time * 1000;
         count++;
     }
     return count;
@@ -733,28 +738,9 @@ void az_remove_amiibo(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Software keyboard / Mii selector — stubs (full implementation requires
-// Swift ↔ C++ synchronous callback mechanism)
+// Software keyboard / Mii selector — implemented in applets_ios.mm
+// (az_swkbd_submit, az_swkbd_cancel, az_mii_select, az_mii_cancel).
 // ---------------------------------------------------------------------------
-
-char* az_swkbd_get_config(void) {
-    return strdup("{}");
-}
-
-bool az_swkbd_submit(const char* text, int button) {
-    (void)text; (void)button;
-    return true;
-}
-
-void az_swkbd_cancel(void) {}
-
-char* az_mii_select(int index) {
-    (void)index;
-    char* data = static_cast<char*>(calloc(1, 70));
-    return data;
-}
-
-void az_mii_cancel(void) {}
 
 // ---------------------------------------------------------------------------
 // Netplay — stubs (wire through multiplayer.cpp when needed)
@@ -799,6 +785,6 @@ char* az_get_recommended_extension(const char*, bool) { return strdup(""); }
 void az_free_string(char* str) { free(str); }
 
 const char* az_get_version_string(void) {
-    static thread_local std::string ver = Common::GetScmRev();
+    static thread_local std::string ver = Common::g_scm_rev;
     return ver.c_str();
 }
