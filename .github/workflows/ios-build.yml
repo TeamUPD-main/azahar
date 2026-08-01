@@ -31,8 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install ccache ninja
-          pip3 install aqtinstall
+          brew install ccache ninja aqtinstall
 
       - name: Configure CMake
         run: |
