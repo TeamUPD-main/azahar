@@ -2,13 +2,19 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#import <Cocoa/Cocoa.h>
-#import <CoreGraphics/CoreGraphics.h>
 #import <Foundation/Foundation.h>
+
+#if TARGET_OS_OSX
+#import <AppKit/AppKit.h>
+#import <CoreGraphics/CoreGraphics.h>
+#else
+#import <UIKit/UIKit.h>
+#endif
 
 namespace AppleUtils {
 
-float GetRefreshRate() { // TODO: How does this handle multi-monitor? -OS
+float GetRefreshRate() {
+#if TARGET_OS_OSX
     NSScreen* screen = [NSScreen mainScreen];
     if (screen) {
         NSDictionary* screenInfo = [screen deviceDescription];
@@ -21,12 +27,23 @@ float GetRefreshRate() { // TODO: How does this handle multi-monitor? -OS
             return refreshRate;
         }
     }
-
-    return 60; // Something went wrong, so just return a generic value
+    return 60;
+#else
+    // iOS: use UIScreen.maximumFramesPerSecond (available since iOS 10.3)
+    UIScreen* screen = [UIScreen mainScreen];
+    if (screen) {
+        return static_cast<float>(screen.maximumFramesPerSecond);
+    }
+    return 60;
+#endif
 }
 
 int IsLowPowerModeEnabled() {
     return (int)[NSProcessInfo processInfo].lowPowerModeEnabled;
+}
+
+int IsRunningFromTerminal() {
+    return 0;
 }
 
 } // namespace AppleUtils
