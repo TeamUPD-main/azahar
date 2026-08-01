@@ -1,0 +1,66 @@
+name: ios-build-27
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  ios-build:
+    runs-on: xcode-27
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ["standard"]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache
+            ${{ github.workspace }}/build-ios
+          key: ios-${{ matrix.variant }}-${{ github.sha }}
+          restore-keys: |
+            ios-${{ matrix.variant }}-
+
+      - name: Install dependencies
+        run: |
+          brew install ccache ninja aqtinstall
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build-ios -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DENABLE_QT=OFF \
+            -DENABLE_LIBRETRO=OFF \
+            -DENABLE_TESTS=OFF \
+            -DENABLE_ROOM_STANDALONE=OFF
+
+      - name: Build
+        run: cmake --build build-ios --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Run tests
+        if: matrix.variant == 'standard'
+        run: ctest --test-dir build-ios -VV -C Release
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          find build-ios -name "*.app" -type d -exec zip -r artifacts/azahar-ios.zip {} \;
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-${{ matrix.variant }}
+          path: artifacts/
