@@ -141,7 +141,7 @@ static const char* ios_config_default_file_content = (BOOST_HANA_STRING(R"(
 
 # Turns on the frame limiter, which will limit frames output to the target game speed
 # 0: Off, 1: On (default)
-)") DECLARE_KEY(use_frame_limit) BOOST_HANA_STRING(R"(
+)") +BOOST_HANA_STRING("use_frame_limit =")+ BOOST_HANA_STRING(R"(
 
 # Limits the speed of the game to run no faster than this value as a percentage of target speed
 # 1 - 9999: Speed limit as a percentage of target game speed. 100 (default)

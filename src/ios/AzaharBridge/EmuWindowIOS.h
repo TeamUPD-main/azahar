@@ -19,6 +19,12 @@ typedef struct CAMetalLayer CAMetalLayer;
  * window this class creates no graphics objects itself; presentation is handled
  * by the renderer's own present thread via the TextureMailbox.
  */
+
+/// Reports portrait mode to the EmuWindow so the framebuffer layout matches the
+/// physical orientation. Called from the Swift frontend (never the emulation
+/// thread). Declared here so the C bridge can call it.
+void SetIOSPortraitMode(bool is_portrait);
+
 class EmuWindowIOS final : public Frontend::EmuWindow {
 public:
     explicit EmuWindowIOS(CAMetalLayer* layer, bool is_secondary);

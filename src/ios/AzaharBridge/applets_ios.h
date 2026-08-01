@@ -20,7 +20,7 @@ public:
     void Execute(const Frontend::KeyboardConfig& config) override;
     void ShowError(const std::string& error) override;
 
-    const KeyboardConfig& GetKeyboardConfig() const {
+    const Frontend::KeyboardConfig& GetKeyboardConfig() const {
         return config;
     }
 };

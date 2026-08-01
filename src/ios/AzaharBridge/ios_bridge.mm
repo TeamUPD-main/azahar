@@ -78,11 +78,11 @@ float pending_secondary_scale = 1.0f;
 std::string inserted_cartridge;
 std::string pending_rom_path;
 
-// Forward declaration
-void RunCitra(const std::string& filepath);
-void TryShutdown();
-
 } // Anonymous namespace
+
+// Forward declarations (definitions are static, file scope).
+static void RunCitra(const std::string& filepath);
+static void TryShutdown();
 
 // Callbacks from the Swift frontend. Defined at file scope so other bridge
 // translation units (applets, etc.) can trigger them.
