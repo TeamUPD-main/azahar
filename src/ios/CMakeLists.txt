@@ -87,12 +87,13 @@ if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
 endif()
 enable_language(Swift)
 
-# Swift doesn't recognize -pthread, but it's being passed from C++ libraries
-# (OpenAL, SDL2, etc.) via CMAKE_THREAD_LIBS_INIT. Create a wrapper script to
-# filter it out of the link command before creating the target.
-set(_SWIFTC_WRAPPER "${CMAKE_CURRENT_BINARY_DIR}/swiftc_no_pthread.sh")
-file(WRITE "${_SWIFTC_WRAPPER}" "#!/bin/bash\nargs=()\nfor arg; do\n  [[ \"\$arg\" == \"-pthread\" ]] || args+=(\"\$arg\")\ndone\nexec /usr/bin/swiftc \"\${args[@]}\"\n")
-file(CHMOD "${_SWIFTC_WRAPPER}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+# Swift doesn't recognize -pthread or -Wl, style flags; they come from C++
+# libraries. Use a Python wrapper script to filter/transform them (Python is
+# more reliable than bash for complex argument parsing).
+set(_SWIFTC_WRAPPER "${CMAKE_CURRENT_SOURCE_DIR}/swiftc_wrapper.py")
+if(NOT EXISTS "${_SWIFTC_WRAPPER}")
+    message(FATAL_ERROR "Swift wrapper script not found: ${_SWIFTC_WRAPPER}")
+endif()
 
 # Override CMAKE_Swift_LINK_EXECUTABLE for this directory scope
 set(CMAKE_Swift_LINK_EXECUTABLE
