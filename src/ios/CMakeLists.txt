@@ -116,6 +116,11 @@ add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
 )
 
+# Asset catalog (app icon); Xcode compiles it via actool.
+target_sources(azahar_ios_app PRIVATE
+    RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Assets.xcassets"
+)
+
 set_target_properties(azahar_ios_app PROPERTIES
     OUTPUT_NAME "Azahar"
     MACOSX_BUNDLE TRUE
@@ -135,7 +140,7 @@ set_target_properties(azahar_ios_app PROPERTIES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents YES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UISupportedInterfaceOrientations "~UIInterfaceOrientationPortrait"
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchScreen_Generation YES
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
     LINKER_LANGUAGE Swift
