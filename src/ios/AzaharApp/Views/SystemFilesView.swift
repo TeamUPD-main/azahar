@@ -94,14 +94,14 @@ struct SystemFilesView: View {
 enum SystemArchiveType: String, CaseIterable {
     case sharedFont = "Shared Font"
     case touchScreenCalibration = "Touch Screen Calibration"
-    caseAMERAleCalibration = "Circle Pad Calibration"
+    case circlePadCalibration = "Circle Pad Calibration"
 
     var displayName: String { rawValue }
     var icon: String {
         switch self {
         case .sharedFont: return "textformat.abc"
         case .touchScreenCalibration: return "hand.tap"
-        case .CAMERAleCalibration: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .circlePadCalibration: return "arrow.up.and.down.and.arrow.left.and.right"
         }
     }
 }
