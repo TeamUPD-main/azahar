@@ -54,13 +54,37 @@ jobs:
         if: matrix.variant == 'standard'
         run: ctest --test-dir build-ios -VV -C Release
 
-      - name: Package
+      - name: Package IPA
         run: |
-          mkdir -p artifacts
-          find build-ios -name "*.app" -type d -exec zip -r artifacts/azahar-ios.zip {} \;
+          set -euo pipefail
 
-      - name: Upload
+          # Locate the .app bundle produced by the build
+          APP_DIR=$(find build-ios -maxdepth 5 -name "Azahar.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::Azahar.app not found in build tree"
+            exit 1
+          fi
+          echo "Found app bundle: $APP_DIR"
+
+          # Build the Payload/ tree required by the IPA format
+          STAGING=$(mktemp -d)
+          mkdir -p "$STAGING/Payload"
+          cp -R "$APP_DIR" "$STAGING/Payload/"
+
+          # Copy the entitlements into the .app so sideloaders can reference them
+          cp src/ios/AzaharApp/Resources/Azahar.entitlements \
+             "$STAGING/Payload/Azahar.app/Azahar.entitlements"
+
+          # Create the IPA (zip of the Payload tree)
+          mkdir -p artifacts
+          (cd "$STAGING" && zip -r -q "$GITHUB_WORKSPACE/artifacts/Azahar.ipa" Payload/)
+          echo "IPA created:"
+          ls -lh artifacts/Azahar.ipa
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
           name: ios-${{ matrix.variant }}
-          path: artifacts/
+          path: artifacts/Azahar.ipa
+          if-no-files-found: error
+          retention-days: 30

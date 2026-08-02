@@ -110,7 +110,7 @@ set_target_properties(azahar_ios_app PROPERTIES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents YES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UISupportedInterfaceOrientations "~UIInterfaceOrientationPortrait"
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchScreen_Generation YES
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
     LINKER_LANGUAGE Swift
@@ -131,5 +131,30 @@ if(EXISTS "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/l
             "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib"
             "$<TARGET_BUNDLE_CONTENT_DIR:azahar_ios_app>/Frameworks/libMoltenVK.dylib"
         COMMENT "Bundling MoltenVK"
+    )
+endif()
+
+# ---------------------------------------------------------------------------
+# Code signing for on-device deployment (generator-agnostic).
+# Set AZAHAR_CODE_SIGN_IDENTITY (e.g. "Apple Development") and optionally
+# AZAHAR_PROVISIONING_PROFILE to an absolute .mobileprovision path at
+# configure time.  Both can be left empty to skip signing (CI / simulator).
+# ---------------------------------------------------------------------------
+set(_SIGN_ID "${AZAHAR_CODE_SIGN_IDENTITY}" CACHE STRING
+    "Code-sign identity for iOS device builds (leave empty to skip)")
+set(_PROVISION "${AZAHAR_PROVISIONING_PROFILE}" CACHE FILEPATH
+    "Path to a .mobileprovision file for device builds (optional)")
+set(_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Azahar.entitlements")
+
+if(_SIGN_ID)
+    set(_SIGN_ARGS -s "${_SIGN_ID}" --entitlements "${_ENTITLEMENTS}")
+    if(_PROVISION)
+        list(APPEND _SIGN_ARGS --provisioning-profile "${_PROVISION}")
+    endif()
+    add_custom_command(TARGET azahar_ios_app POST_BUILD
+        COMMAND /usr/bin/codesign --force --deep --timestamp
+                ${_SIGN_ARGS}
+                "$<TARGET_BUNDLE_DIR:azahar_ios_app>"
+        COMMENT "Code-signing Azahar.app with identity '${_SIGN_ID}'"
     )
 endif()
