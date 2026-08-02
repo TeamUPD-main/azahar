@@ -35,7 +35,7 @@ bool EmuWindowIOS::OnSurfaceChanged(CAMetalLayer* layer) {
     window_height = static_cast<unsigned>(std::max(temp_height, 0));
     render_layer = layer;
     window_info.type = Frontend::WindowSystemType::MacOS;
-    window_info.render_surface = static_cast<void*>(layer);
+    window_info.render_surface = (__bridge void*)layer;
     OnFramebufferSizeChanged();
     return true;
 }
