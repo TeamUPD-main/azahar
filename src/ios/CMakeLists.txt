@@ -87,7 +87,7 @@ if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
 endif()
 
 # Ensure Swift compiler uses the correct iOS SDK
-if(NOT CMAKE_Swift_FLAGS_INIT)
+if(NOT CMAKE_Swift_FLAGS_INIT AND CMAKE_OSX_SYSROOT)
     set(CMAKE_Swift_FLAGS_INIT "-sdk ${CMAKE_OSX_SYSROOT}")
 endif()
 
