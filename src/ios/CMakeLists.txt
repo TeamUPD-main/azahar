@@ -114,7 +114,6 @@ endif()
 
 add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
-    RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Assets.xcassets"
 )
 
 set_target_properties(azahar_ios_app PROPERTIES
@@ -129,6 +128,8 @@ set_target_properties(azahar_ios_app PROPERTIES
     MACOSX_BUNDLE_ICON_FILE "AppIcon"
     MACOSX_BUNDLE_LAUNCH_SCREEN_STORYBOARD ""
     MACOSX_BUNDLE_SCREEN_ORIENTATIONS "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait"
+    # Asset catalog (app icon). Xcode compiles it via actool and embeds it.
+    MACOSX_BUNDLE_RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Assets.xcassets"
     XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/AzaharBridge/azahar_ios.h"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
     XCODE_ATTRIBUTE_INFOPLIST_KEY_CFBundleDisplayName "Azahar"
