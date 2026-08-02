@@ -40,6 +40,13 @@ final class AppState: ObservableObject {
         az_log_device_info()
         az_play_time_init()
 
+        // Create ROMs directory in Documents
+        let romsPath = (documentsPath as NSString).appendingPathComponent("ROMs")
+        try? FileManager.default.createDirectory(
+            atPath: romsPath,
+            withIntermediateDirectories: true
+        )
+
         scanGames()
     }
 
@@ -47,6 +54,38 @@ final class AppState: ObservableObject {
         games = GameScanner.scan(userDirectory: NSSearchPathForDirectoriesInDomains(
             .documentDirectory, .userDomainMask, true
         ).first ?? "")
+    }
+
+    func importROM(from sourceURL: URL) {
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            print("Failed to access security scoped resource")
+            return
+        }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        let documentsPath = NSSearchPathForDirectoriesInDomains(
+            .documentDirectory, .userDomainMask, true
+        ).first ?? ""
+        let romsPath = (documentsPath as NSString).appendingPathComponent("ROMs")
+        let destinationURL = URL(fileURLWithPath: romsPath)
+            .appendingPathComponent(sourceURL.lastPathComponent)
+
+        do {
+            // Create ROMs directory if it doesn't exist
+            try FileManager.default.createDirectory(
+                at: URL(fileURLWithPath: romsPath),
+                withIntermediateDirectories: true
+            )
+            
+            // Copy the ROM file
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            print("Imported ROM: \(destinationURL.lastPathComponent)")
+        } catch {
+            print("Failed to import ROM: \(error)")
+        }
     }
 
     func launchGame(_ game: Game) {

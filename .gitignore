@@ -3,6 +3,8 @@
 doc-build/
 build-*/
 
+ref/
+
 # NSIS built executables
 src/installer/*.exe
 

@@ -18,6 +18,11 @@ struct SettingsView: View {
                         description: "Faster but uses more memory",
                         group: "Core", key: "use_cpu_jit"
                     )
+                    SettingToggle(
+                        title: "3GX Plugin Loader",
+                        description: "Enable support for 3GX plugins",
+                        group: "Core", key: "plugin_loader_enabled"
+                    )
                     SettingSlider(
                         title: "CPU Clock Percentage",
                         description: "Default 100%",
@@ -31,6 +36,7 @@ struct SettingsView: View {
                         title: "Graphics API",
                         group: "Renderer", key: "graphics_api",
                         options: [
+                            (0, "OpenGL"),
                             (1, "Vulkan (recommended)")
                         ]
                     )
