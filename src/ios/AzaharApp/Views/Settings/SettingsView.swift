@@ -248,10 +248,10 @@ struct SettingPicker: View {
             }
         }
         .onChange(of: selection) { _, newValue in
-            az_setting_set_int(group, key, Int32(newValue))
+            az_setting_set_int(group, key, newValue)
         }
         .onAppear {
-            selection = Int(az_setting_get_int(group, key, Int32(options.first?.0 ?? 0)))
+            selection = Int(az_setting_get_int(group, key, options.first?.0 ?? 0))
         }
     }
 }

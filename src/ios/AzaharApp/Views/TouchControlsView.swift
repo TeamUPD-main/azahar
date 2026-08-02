@@ -53,15 +53,15 @@ struct TouchControlsView: View {
                     .position(x: w - 80 * scale, y: h - 250 * scale)
 
                 // L/R triggers
-                TriggerButton(label: "L", button: AZ_TRIGGER_L, scale: scale)
+                TriggerButton(label: "L", button: Int32(AZ_TRIGGER_L), scale: scale)
                     .position(x: 40 * scale, y: 30 * scale)
-                TriggerButton(label: "R", button: AZ_TRIGGER_R, scale: scale)
+                TriggerButton(label: "R", button: Int32(AZ_TRIGGER_R), scale: scale)
                     .position(x: w - 40 * scale, y: 30 * scale)
 
                 // Center buttons (Start, Select, Home)
                 HStack(spacing: 20 * scale) {
-                    SmallButton(label: "SEL", button: AZ_BUTTON_SELECT, scale: scale)
-                    SmallButton(label: "START", button: AZ_BUTTON_START, scale: scale)
+                    SmallButton(label: "SEL", button: Int32(AZ_BUTTON_SELECT), scale: scale)
+                    SmallButton(label: "START", button: Int32(AZ_BUTTON_START), scale: scale)
                 }
                 .position(x: w / 2, y: h - 40 * scale)
             }
