@@ -358,8 +358,11 @@ endif()
 # System imported libraries
 # ======================
 
-# Prefer the -pthread flag on Linux.
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+# Prefer the -pthread flag on Linux, but not on iOS where Swift doesn't
+# understand it (pthreads is always available on iOS/Darwin anyway).
+if(NOT IOS)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+endif()
 find_package(Threads REQUIRED)
 
 if (ENABLE_QT)
