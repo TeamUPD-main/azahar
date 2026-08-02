@@ -114,10 +114,6 @@ endif()
 
 add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
-)
-
-# Asset catalog (app icon); Xcode compiles it via actool.
-target_sources(azahar_ios_app PRIVATE
     RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Assets.xcassets"
 )
 
