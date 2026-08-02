@@ -405,6 +405,35 @@ bool az_cheats_set_enabled(int64_t cheat_id, bool enabled);
 bool az_cheats_apply(void);
 
 // ---------------------------------------------------------------------------
+// ZipPass (StreetPass export/import)
+// ---------------------------------------------------------------------------
+
+/// Export StreetPass data to a zip file
+int az_zippass_export(const char* path);
+
+/// Import StreetPass data from a zip file
+int az_zippass_import(const char* path);
+
+/// Import queued ZipPass data
+int az_zippass_import_queued(void);
+
+/// Clear StreetPass configuration
+int az_zippass_clear_config(void);
+
+// ---------------------------------------------------------------------------
+// System Files
+// ---------------------------------------------------------------------------
+
+/// Install a system title from CIA
+int az_install_cia(const char* path);
+
+/// Check if system files are available
+bool az_system_files_available(void);
+
+/// Get system file status for a region (0=JPN, 1=USA, 2=EUR, etc)
+bool az_system_files_region_available(int region);
+
+// ---------------------------------------------------------------------------
 // Misc
 // ---------------------------------------------------------------------------
 

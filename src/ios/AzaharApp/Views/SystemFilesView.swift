@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// System files management (equivalent to Android's SystemFilesFragment).
 /// Allows users to manage NAND titles, system archives, and unique data.
@@ -13,6 +14,11 @@ struct SystemFilesView: View {
     @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var showingZipPassExport = false
+    @State private var showingZipPassImport = false
+    @State private var showingCIAImport = false
+    @State private var installProgress: Double = 0
+    @State private var isInstalling = false
 
     var body: some View {
         List {
@@ -29,6 +35,51 @@ struct SystemFilesView: View {
                     Text(systemTitlesAvailable ? "Installed" : "Not found")
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section("System Files") {
+                Button {
+                    showingCIAImport = true
+                } label: {
+                    Label("Install System CIA", systemImage: "arrow.down.doc")
+                }
+                
+                if isInstalling {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Installing...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ProgressView(value: installProgress)
+                    }
+                }
+                
+                Text("Install 3DS system files (Home Menu, Mii Maker, etc.) from CIA files. You can obtain these from your own 3DS console.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("StreetPass (ZipPass)") {
+                Button {
+                    exportZipPass()
+                } label: {
+                    Label("Export StreetPass Data", systemImage: "square.and.arrow.up")
+                }
+                
+                Button {
+                    showingZipPassImport = true
+                } label: {
+                    Label("Import StreetPass Data", systemImage: "square.and.arrow.down")
+                }
+                
+                Button(role: .destructive) {
+                    clearStreetPassData()
+                } label: {
+                    Label("Clear StreetPass Data", systemImage: "trash")
+                }
+                
+                Text("Export and import StreetPass Mii Plaza data to share with other devices or backup your progress.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("System Archives") {
@@ -68,41 +119,190 @@ struct SystemFilesView: View {
             }
         }
         .navigationTitle("System Files")
-        .alert("System Status", isPresented: $showingAlert) {
-            Button("OK") {}
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            checkSystemStatus()
+        }
+        .alert("System Files", isPresented: $showingAlert) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(alertMessage)
         }
-        .onAppear {
-            refreshStatus()
+        .fileImporter(
+            isPresented: $showingCIAImport,
+            allowedContentTypes: [UTType(filenameExtension: "cia") ?? .data],
+            allowsMultipleSelection: false
+        ) { result in
+            handleCIAImport(result)
+        }
+        .fileExporter(
+            isPresented: $showingZipPassExport,
+            document: ZipPassDocument(),
+            contentType: .zip,
+            defaultFilename: "streetpass_\(Int(Date().timeIntervalSince1970)).zip"
+        ) { result in
+            handleZipPassExport(result)
+        }
+        .fileImporter(
+            isPresented: $showingZipPassImport,
+            allowedContentTypes: [.zip],
+            allowsMultipleSelection: false
+        ) { result in
+            handleZipPassImport(result)
         }
     }
-
-    private func refreshStatus() {
+    
+    private func checkSystemStatus() {
         isLinked = az_is_full_console_linked()
-        systemTitlesAvailable = az_are_system_titles_available()
+        systemTitlesAvailable = az_system_files_available()
     }
-
-    private func az_are_system_titles_available() -> Bool {
-        var installed = [Bool](repeating: false, count: 2)
-        az_get_are_system_titles_installed(&installed)
-        return installed[0] || installed[1]
+    
+    private func handleCIAImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            
+            guard url.startAccessingSecurityScopedResource() else {
+                alertMessage = "Failed to access file"
+                showingAlert = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            isInstalling = true
+            installProgress = 0
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = az_install_cia(url.path)
+                
+                DispatchQueue.main.async {
+                    isInstalling = false
+                    
+                    if result == 0 {
+                        alertMessage = "System file installed successfully!"
+                        checkSystemStatus()
+                    } else {
+                        alertMessage = "Failed to install system file. Error code: \(result)"
+                    }
+                    showingAlert = true
+                }
+            }
+            
+        case .failure(let error):
+            alertMessage = "Failed to import CIA: \(error.localizedDescription)"
+            showingAlert = true
+        }
+    }
+    
+    private func exportZipPass() {
+        showingZipPassExport = true
+    }
+    
+    private func handleZipPassExport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            guard url.startAccessingSecurityScopedResource() else {
+                alertMessage = "Failed to access export location"
+                showingAlert = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            let result = az_zippass_export(url.path)
+            
+            if result == 0 {
+                alertMessage = "StreetPass data exported successfully!"
+            } else {
+                alertMessage = "Failed to export StreetPass data. Error code: \(result)"
+            }
+            showingAlert = true
+            
+        case .failure(let error):
+            alertMessage = "Failed to export: \(error.localizedDescription)"
+            showingAlert = true
+        }
+    }
+    
+    private func handleZipPassImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            
+            guard url.startAccessingSecurityScopedResource() else {
+                alertMessage = "Failed to access file"
+                showingAlert = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            let result = az_zippass_import(url.path)
+            
+            if result == 0 {
+                alertMessage = "StreetPass data imported successfully!"
+            } else {
+                alertMessage = "Failed to import StreetPass data. Error code: \(result)"
+            }
+            showingAlert = true
+            
+        case .failure(let error):
+            alertMessage = "Failed to import: \(error.localizedDescription)"
+            showingAlert = true
+        }
+    }
+    
+    private func clearStreetPassData() {
+        let result = az_zippass_clear_config()
+        
+        if result == 0 {
+            alertMessage = "StreetPass data cleared successfully!"
+        } else {
+            alertMessage = "Failed to clear StreetPass data. Error code: \(result)"
+        }
+        showingAlert = true
     }
 }
 
-/// Types of system archives.
+/// Helper document for ZipPass export
+struct ZipPassDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.zip] }
+    
+    init() {}
+    
+    init(configuration: ReadConfiguration) throws {}
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        // Create a temporary file for the export
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent("streetpass_export.zip")
+        
+        // Export the zippass data
+        let result = az_zippass_export(tempFile.path)
+        guard result == 0, FileManager.default.fileExists(atPath: tempFile.path) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        
+        return try FileWrapper(url: tempFile, options: .immediate)
+    }
+}
+
 enum SystemArchiveType: String, CaseIterable, Identifiable {
     case sharedFont = "Shared Font"
-    case touchScreenCalibration = "Touch Screen Calibration"
-    case circlePadCalibration = "Circle Pad Calibration"
-
+    case badWordList = "Bad Word List"
+    case region = "Region Manifest"
+    case homeMenu = "Home Menu"
+    case miiMaker = "Mii Maker"
+    
     var id: String { rawValue }
+    
     var displayName: String { rawValue }
+    
     var icon: String {
         switch self {
-        case .sharedFont: return "textformat.abc"
-        case .touchScreenCalibration: return "hand.tap"
-        case .circlePadCalibration: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .sharedFont: return "textformat"
+        case .badWordList: return "exclamationmark.shield"
+        case .region: return "globe"
+        case .homeMenu: return "house"
+        case .miiMaker: return "person.circle"
         }
     }
 }

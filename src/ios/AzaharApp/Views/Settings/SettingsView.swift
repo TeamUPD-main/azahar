@@ -137,6 +137,16 @@ struct SettingsView: View {
                         group: "System", key: "init_clock",
                         options: [(0, "System clock"), (1, "Fixed time")]
                     )
+                    SettingToggle(
+                        title: "Enable LLE Modules",
+                        description: "Use system modules from your 3DS (better compatibility)",
+                        group: "Core", key: "enable_required_online_lle_modules"
+                    )
+                    SettingToggle(
+                        title: "Delay Start for LLE",
+                        description: "Wait for LLE modules to load before starting",
+                        group: "Debugging", key: "delay_start_for_lle_modules"
+                    )
                 }
 
                 settingsSection("Stereoscopic 3D", icon: "scope") {

@@ -40,6 +40,7 @@
 #include "core/loader/loader.h"
 #include "core/savestate.h"
 #include "core/system_titles.h"
+#include "core/zip_pass.h"
 #include "ios/AzaharBridge/EmuWindowIOS.h"
 #include "ios/AzaharBridge/config_ios.h"
 #include "ios/AzaharBridge/input_manager_ios.h"
@@ -775,6 +776,59 @@ bool az_cheats_apply(void) { return false; }
 int az_compress_file(const char*, const char*) { return AZ_COMPRESS_UNSUPPORTED; }
 int az_decompress_file(const char*, const char*) { return AZ_DECOMPRESS_UNSUPPORTED; }
 char* az_get_recommended_extension(const char*, bool) { return strdup(""); }
+
+// ---------------------------------------------------------------------------
+// ZipPass (StreetPass export/import)
+// ---------------------------------------------------------------------------
+
+int az_zippass_export(const char* path) {
+    if (!path) return -1;
+    return Core::exportZipPass(std::string(path));
+}
+
+int az_zippass_import(const char* path) {
+    if (!path) return -1;
+    return Core::importZipPass(std::string(path));
+}
+
+int az_zippass_import_queued(void) {
+    return Core::importQueuedZipPass();
+}
+
+int az_zippass_clear_config(void) {
+    return Core::clearStreetPassConfig();
+}
+
+// ---------------------------------------------------------------------------
+// System Files
+// ---------------------------------------------------------------------------
+
+int az_install_cia(const char* path) {
+    if (!path) return static_cast<int>(Service::AM::InstallStatus::ErrorFailedToOpenFile);
+    
+    auto& system = Core::System::GetInstance();
+    Service::AM::InstallStatus status = Service::AM::InstallCIA(
+        std::string(path),
+        [](std::size_t current, std::size_t total) {
+            // Progress callback - could expose this to Swift if needed
+        }
+    );
+    
+    return static_cast<int>(status);
+}
+
+bool az_system_files_available(void) {
+    return HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure1) &&
+           HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure2);
+}
+
+bool az_system_files_region_available(int region) {
+    if (region < 0 || region > 6) return false;
+    
+    // Check if the home menu for this region exists
+    const std::string home_menu_path = Core::GetHomeMenuNcchPath(region);
+    return FileUtil::Exists(home_menu_path);
+}
 
 // ---------------------------------------------------------------------------
 // Misc

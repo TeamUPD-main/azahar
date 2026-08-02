@@ -492,6 +492,8 @@ add_library(citra_core STATIC EXCLUDE_FROM_ALL
     savestate_data.h
     system_titles.cpp
     system_titles.h
+    zip_pass.cpp
+    zip_pass.h
     tracer/citrace.h
     tracer/recorder.cpp
     tracer/recorder.h
