@@ -87,6 +87,18 @@ if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
 endif()
 enable_language(Swift)
 
+# Swift doesn't recognize -pthread, but it's being passed from C++ libraries
+# (OpenAL, SDL2, etc.) via CMAKE_THREAD_LIBS_INIT. Create a wrapper script to
+# filter it out of the link command before creating the target.
+set(_SWIFTC_WRAPPER "${CMAKE_CURRENT_BINARY_DIR}/swiftc_no_pthread.sh")
+file(WRITE "${_SWIFTC_WRAPPER}" "#!/bin/bash\nargs=()\nfor arg; do\n  [[ \"\$arg\" == \"-pthread\" ]] || args+=(\"\$arg\")\ndone\nexec /usr/bin/swiftc \"\${args[@]}\"\n")
+file(CHMOD "${_SWIFTC_WRAPPER}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+# Override CMAKE_Swift_LINK_EXECUTABLE for this directory scope
+set(CMAKE_Swift_LINK_EXECUTABLE
+    "${_SWIFTC_WRAPPER} <CMAKE_Swift_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+)
+
 add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
 )
