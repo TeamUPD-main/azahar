@@ -85,6 +85,12 @@ if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
     set(CMAKE_Swift_COMPILER_TARGET
         "${CMAKE_OSX_ARCHITECTURES}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
+
+# Ensure Swift compiler uses the correct iOS SDK
+if(NOT CMAKE_Swift_FLAGS_INIT)
+    set(CMAKE_Swift_FLAGS_INIT "-sdk ${CMAKE_OSX_SYSROOT}")
+endif()
+
 enable_language(Swift)
 
 # Swift doesn't recognize -pthread or -Wl, style flags; they come from C++
