@@ -3,7 +3,7 @@
 # frontend. To build:
 #   cmake -S . -B build-ios -G Xcode \
 #       -DCMAKE_SYSTEM_NAME=iOS \
-#       -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+#       -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
 #       -DCMAKE_OSX_ARCHITECTURES=arm64 \
 #       -DENABLE_QT=OFF -DENABLE_LIBRETRO=OFF \
 #       -DENABLE_TESTS=OFF
@@ -77,34 +77,40 @@ set(AZAHAR_SWIFT_SOURCES
 )
 
 # ---------------------------------------------------------------------------
-# Swift support for the iOS app target (CMake supports Swift with Ninja).
-# For iOS cross-compilation swiftc needs the target triple; set it before
-# enabling the language so CMake passes it to both swiftc and the linker.
+# Swift support for the iOS app target.
+# The Xcode generator (recommended) handles Swift natively: SDK path, target
+# triple, bridging header, and framework linking are all derived from Xcode
+# build settings. The Ninja generator needs manual help, so all the plumbing
+# below is guarded to non-Xcode generators only.
 # ---------------------------------------------------------------------------
-if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
-    set(CMAKE_Swift_COMPILER_TARGET
-        "${CMAKE_OSX_ARCHITECTURES}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}")
-endif()
-
-# Ensure Swift compiler uses the correct iOS SDK
-if(NOT CMAKE_Swift_FLAGS_INIT AND CMAKE_OSX_SYSROOT)
-    set(CMAKE_Swift_FLAGS_INIT "-sdk ${CMAKE_OSX_SYSROOT}")
-endif()
-
 enable_language(Swift)
 
-# Swift doesn't recognize -pthread or -Wl, style flags; they come from C++
-# libraries. Use a Python wrapper script to filter/transform them (Python is
-# more reliable than bash for complex argument parsing).
-set(_SWIFTC_WRAPPER "${CMAKE_CURRENT_SOURCE_DIR}/swiftc_wrapper.py")
-if(NOT EXISTS "${_SWIFTC_WRAPPER}")
-    message(FATAL_ERROR "Swift wrapper script not found: ${_SWIFTC_WRAPPER}")
-endif()
+if(NOT CMAKE_GENERATOR STREQUAL "Xcode")
+    # For iOS cross-compilation swiftc needs the target triple; set it before
+    # enable_language so CMake passes it to both swiftc and the linker.
+    if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_Swift_COMPILER_TARGET
+            "${CMAKE_OSX_ARCHITECTURES}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    endif()
 
-# Override CMAKE_Swift_LINK_EXECUTABLE for this directory scope
-set(CMAKE_Swift_LINK_EXECUTABLE
-    "${_SWIFTC_WRAPPER} <CMAKE_Swift_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
-)
+    # Ensure Swift compiler uses the correct iOS SDK
+    if(NOT CMAKE_Swift_FLAGS_INIT AND CMAKE_OSX_SYSROOT)
+        set(CMAKE_Swift_FLAGS_INIT "-sdk ${CMAKE_OSX_SYSROOT}")
+    endif()
+
+    # Swift doesn't recognize -pthread or -Wl, style flags; they come from C++
+    # libraries. Use a Python wrapper script to filter/transform them (Python
+    # is more reliable than bash for complex argument parsing).
+    set(_SWIFTC_WRAPPER "${CMAKE_CURRENT_SOURCE_DIR}/swiftc_wrapper.py")
+    if(NOT EXISTS "${_SWIFTC_WRAPPER}")
+        message(FATAL_ERROR "Swift wrapper script not found: ${_SWIFTC_WRAPPER}")
+    endif()
+
+    # Override CMAKE_Swift_LINK_EXECUTABLE for this directory scope
+    set(CMAKE_Swift_LINK_EXECUTABLE
+        "${_SWIFTC_WRAPPER} <CMAKE_Swift_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+    )
+endif()
 
 add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
@@ -137,11 +143,14 @@ set_target_properties(azahar_ios_app PROPERTIES
 
 # With the Ninja generator the XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER is
 # ignored; pass it to swiftc directly so the az_* C API is visible to Swift.
-# Also pass the SDK path explicitly so Swift can find UIKit and other iOS frameworks.
-target_compile_options(azahar_ios_app PRIVATE
-    $<$<COMPILE_LANGUAGE:Swift>:-import-objc-header;$<TARGET_PROPERTY:azahar_ios_app,XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER>>
-    $<$<COMPILE_LANGUAGE:Swift>:-sdk;${CMAKE_OSX_SYSROOT}>
-)
+# Also pass the SDK path explicitly so Swift can find UIKit and other iOS
+# frameworks. Xcode derives both from its own build settings.
+if(NOT CMAKE_GENERATOR STREQUAL "Xcode")
+    target_compile_options(azahar_ios_app PRIVATE
+        $<$<COMPILE_LANGUAGE:Swift>:-import-objc-header;$<TARGET_PROPERTY:azahar_ios_app,XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER>>
+        $<$<COMPILE_LANGUAGE:Swift>:-sdk;${CMAKE_OSX_SYSROOT}>
+    )
+endif()
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
 

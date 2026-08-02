@@ -29,19 +29,12 @@ jobs:
           restore-keys: |
             ios-${{ matrix.variant }}-
 
-      - name: Install dependencies
-        run: |
-          brew install ccache ninja aqtinstall
-
       - name: Configure CMake
         run: |
-          cmake -S . -B build-ios -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
+          cmake -S . -B build-ios -G Xcode \
             -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DENABLE_QT=OFF \
             -DENABLE_LIBRETRO=OFF \
             -DENABLE_TESTS=OFF \

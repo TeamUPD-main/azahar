@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 
-IOS_TARGET = 'arm64-apple-ios14.0'
+IOS_TARGET = 'arm64-apple-ios18.0'
 
 
 def get_sdk_path():

@@ -23,14 +23,14 @@ The port mirrors the Android app structure:
 
 ## Building
 
-Requires Xcode 15+, macOS 14+, iOS 14+ deployment target, and all submodules
+Requires Xcode 15+, macOS 14+, iOS 18+ deployment target, and all submodules
 initialized:
 
 ```bash
 git submodule update --init --recursive
 cmake -S . -B build-ios -G Xcode \
     -DCMAKE_SYSTEM_NAME=iOS \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
     -DCMAKE_OSX_ARCHITECTURES=arm64 \
     -DENABLE_QT=OFF \
     -DENABLE_LIBRETRO=OFF \
