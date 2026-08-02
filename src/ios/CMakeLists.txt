@@ -137,11 +137,45 @@ set_target_properties(azahar_ios_app PROPERTIES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents YES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UISupportedInterfaceOrientations "~UIInterfaceOrientationPortrait"
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchScreen_Generation YES
-    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
-    XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
+    XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Azahar.entitlements"
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
     LINKER_LANGUAGE Swift
 )
+
+# Code signing configuration — can be overridden via CMake variables or environment
+# Default to disabled for local builds; CI can enable by passing -DIOS_CODE_SIGN_IDENTITY
+if(DEFINED ENV{IOS_CODE_SIGN_IDENTITY})
+    set(IOS_CODE_SIGN_IDENTITY "$ENV{IOS_CODE_SIGN_IDENTITY}" CACHE STRING "iOS code signing identity")
+endif()
+if(DEFINED ENV{IOS_DEVELOPMENT_TEAM})
+    set(IOS_DEVELOPMENT_TEAM "$ENV{IOS_DEVELOPMENT_TEAM}" CACHE STRING "iOS development team ID")
+endif()
+if(DEFINED ENV{IOS_PROVISIONING_PROFILE_SPECIFIER})
+    set(IOS_PROVISIONING_PROFILE_SPECIFIER "$ENV{IOS_PROVISIONING_PROFILE_SPECIFIER}" CACHE STRING "iOS provisioning profile specifier")
+endif()
+
+if(IOS_CODE_SIGN_IDENTITY)
+    set_target_properties(azahar_ios_app PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "YES"
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${IOS_CODE_SIGN_IDENTITY}"
+    )
+    if(IOS_DEVELOPMENT_TEAM)
+        set_target_properties(azahar_ios_app PROPERTIES
+            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${IOS_DEVELOPMENT_TEAM}"
+        )
+    endif()
+    if(IOS_PROVISIONING_PROFILE_SPECIFIER)
+        set_target_properties(azahar_ios_app PROPERTIES
+            XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "${IOS_PROVISIONING_PROFILE_SPECIFIER}"
+        )
+    endif()
+else()
+    # Default: no code signing for local dev builds
+    set_target_properties(azahar_ios_app PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+        XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
+    )
+endif()
 
 # With the Ninja generator the XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER is
 # ignored; pass it to swiftc directly so the az_* C API is visible to Swift.

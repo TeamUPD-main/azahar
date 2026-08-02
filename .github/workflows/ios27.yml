@@ -47,13 +47,62 @@ jobs:
         if: matrix.variant == 'standard'
         run: ctest --test-dir build-ios -VV -C Release
 
-      - name: Package
+      - name: Create unsigned IPA
         run: |
-          mkdir -p artifacts
-          find build-ios -name "*.app" -type d -exec zip -r artifacts/azahar-ios.zip {} \;
+          # Find the .app bundle
+          APP_PATH=$(find build-ios -name "Azahar.app" -type d | head -1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Azahar.app not found"
+            exit 1
+          fi
+          
+          echo "Found app bundle: $APP_PATH"
+          
+          # Create IPA directory structure
+          mkdir -p artifacts/Payload
+          
+          # Copy app bundle to Payload
+          cp -r "$APP_PATH" artifacts/Payload/
+          
+          # Verify entitlements file exists in the app bundle
+          if [ -f "$APP_PATH/Azahar.entitlements" ]; then
+            echo "Entitlements found in app bundle"
+            cat "$APP_PATH/Azahar.entitlements"
+          else
+            echo "Warning: Entitlements file not found in app bundle"
+          fi
+          
+          # Copy entitlements to IPA root for visibility
+          if [ -f "src/ios/AzaharApp/Resources/Azahar.entitlements" ]; then
+            cp "src/ios/AzaharApp/Resources/Azahar.entitlements" artifacts/Payload/Azahar.app/
+            echo "Copied entitlements to app bundle"
+          fi
+          
+          # Verify Info.plist and bundle identifier
+          echo "Bundle identifier:"
+          plutil -extract CFBundleIdentifier raw artifacts/Payload/Azahar.app/Info.plist || echo "Could not extract bundle identifier"
+          
+          # Create the IPA (just a zip with .ipa extension)
+          cd artifacts
+          zip -r Azahar.ipa Payload
+          cd ..
+          
+          # Verify IPA contents
+          echo "IPA contents:"
+          unzip -l artifacts/Azahar.ipa | head -30
+          
+          # Show IPA size
+          ls -lh artifacts/Azahar.ipa
 
-      - name: Upload
+      - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
-          name: ios-${{ matrix.variant }}
-          path: artifacts/
+          name: ios-${{ matrix.variant }}-ipa
+          path: artifacts/*.ipa
+          
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-${{ matrix.variant }}-dsyms
+          path: build-ios/**/*.dSYM
