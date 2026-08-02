@@ -38,7 +38,8 @@ jobs:
             -DENABLE_QT=OFF \
             -DENABLE_LIBRETRO=OFF \
             -DENABLE_TESTS=OFF \
-            -DENABLE_ROOM_STANDALONE=OFF
+            -DENABLE_ROOM_STANDALONE=OFF \
+            -DENABLE_RETRO_ACHIEVEMENTS=ON
 
       - name: Build
         run: cmake --build build-ios --config Release -j$(sysctl -n hw.ncpu)

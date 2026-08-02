@@ -831,6 +831,186 @@ bool az_system_files_region_available(int region) {
 }
 
 // ---------------------------------------------------------------------------
+// RetroAchievements
+// ---------------------------------------------------------------------------
+
+static az_ra_event_callback ra_event_callback = nullptr;
+static az_ra_user_t ra_cached_user;
+static az_ra_game_t ra_cached_game;
+static std::string ra_cached_username;
+static std::string ra_cached_display_name;
+static std::string ra_cached_token;
+static std::string ra_cached_avatar_url;
+static std::string ra_cached_game_title;
+static std::string ra_cached_game_badge_url;
+
+class IOSClientObserver : public RetroAchievements::ClientObserver {
+public:
+    void OnLoginSucceeded(const rc_client_user_t* user) override {
+        if (user) {
+            ra_cached_username = user->username ? user->username : "";
+            ra_cached_display_name = user->display_name ? user->display_name : "";
+            ra_cached_token = user->token ? user->token : "";
+            ra_cached_avatar_url = user->avatar_url ? user->avatar_url : "";
+            
+            ra_cached_user.username = ra_cached_username.c_str();
+            ra_cached_user.display_name = ra_cached_display_name.c_str();
+            ra_cached_user.score = user->score;
+            ra_cached_user.score_softcore = user->score_softcore;
+            ra_cached_user.token = ra_cached_token.c_str();
+            ra_cached_user.avatar_url = ra_cached_avatar_url.c_str();
+        }
+    }
+
+    void OnLoginFailed(int result, const char* error_message) override {
+        LOG_ERROR(Frontend, "RetroAchievements login failed: {}", error_message);
+    }
+
+    void OnLoadGameSucceeded(const rc_client_game_t* game) override {
+        if (game) {
+            ra_cached_game_title = game->title ? game->title : "";
+            ra_cached_game_badge_url = game->badge_url ? game->badge_url : "";
+            
+            ra_cached_game.id = game->id;
+            ra_cached_game.title = ra_cached_game_title.c_str();
+            ra_cached_game.badge_url = ra_cached_game_badge_url.c_str();
+            ra_cached_game.num_achievements = game->num_achievements;
+            ra_cached_game.num_unlocked = game->num_unlocked_achievements;
+        }
+    }
+
+    void OnLoadGameFailed(int result, const char* error_message) override {
+        LOG_ERROR(Frontend, "RetroAchievements load game failed: {}", error_message);
+    }
+
+    void OnEvent(const rc_client_event_t* event) override {
+        if (!ra_event_callback || !event) return;
+
+        const char* title = "";
+        const char* description = "";
+        const char* badge_url = "";
+
+        switch (event->type) {
+            case RC_CLIENT_EVENT_ACHIEVEMENT_TRIGGERED:
+                if (event->achievement) {
+                    title = event->achievement->title ? event->achievement->title : "";
+                    description = event->achievement->description ? event->achievement->description : "";
+                    badge_url = event->achievement->badge_url ? event->achievement->badge_url : "";
+                }
+                break;
+            case RC_CLIENT_EVENT_LEADERBOARD_STARTED:
+            case RC_CLIENT_EVENT_LEADERBOARD_FAILED:
+            case RC_CLIENT_EVENT_LEADERBOARD_SUBMITTED:
+            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_UPDATE:
+            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_SHOW:
+            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_HIDE:
+                if (event->leaderboard) {
+                    title = event->leaderboard->title ? event->leaderboard->title : "";
+                    description = event->leaderboard->description ? event->leaderboard->description : "";
+                }
+                break;
+            default:
+                break;
+        }
+
+        ra_event_callback(event->type, title, description, badge_url);
+    }
+};
+
+static std::unique_ptr<IOSClientObserver> ios_ra_observer;
+
+void az_ra_set_event_callback(az_ra_event_callback callback) {
+    ra_event_callback = callback;
+}
+
+void az_ra_login(const char* username, const char* password) {
+    if (!username || !password) return;
+    
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    
+    if (!ios_ra_observer) {
+        ios_ra_observer = std::make_unique<IOSClientObserver>();
+        client.RegisterObserver(*ios_ra_observer);
+    }
+    
+    client.AttemptLogin(username, password);
+}
+
+void az_ra_login_with_token(const char* username, const char* token) {
+    if (!username || !token) return;
+    
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    
+    if (!ios_ra_observer) {
+        ios_ra_observer = std::make_unique<IOSClientObserver>();
+        client.RegisterObserver(*ios_ra_observer);
+    }
+    
+    client.AttemptLoginWithToken(username, token);
+}
+
+void az_ra_logout(void) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    client.LogOut();
+    
+    // Clear cached data
+    ra_cached_username.clear();
+    ra_cached_display_name.clear();
+    ra_cached_token.clear();
+    ra_cached_avatar_url.clear();
+}
+
+bool az_ra_is_logged_in(void) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    return client.GetUser() != nullptr;
+}
+
+const az_ra_user_t* az_ra_get_user(void) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    const rc_client_user_t* user = client.GetUser();
+    
+    if (!user) return nullptr;
+    
+    // Update cached user data
+    ra_cached_username = user->username ? user->username : "";
+    ra_cached_display_name = user->display_name ? user->display_name : "";
+    ra_cached_token = user->token ? user->token : "";
+    ra_cached_avatar_url = user->avatar_url ? user->avatar_url : "";
+    
+    ra_cached_user.username = ra_cached_username.c_str();
+    ra_cached_user.display_name = ra_cached_display_name.c_str();
+    ra_cached_user.score = user->score;
+    ra_cached_user.score_softcore = user->score_softcore;
+    ra_cached_user.token = ra_cached_token.c_str();
+    ra_cached_user.avatar_url = ra_cached_avatar_url.c_str();
+    
+    return &ra_cached_user;
+}
+
+const az_ra_game_t* az_ra_get_game(void) {
+    // TODO: Implement when game loading is integrated
+    return nullptr;
+}
+
+int az_ra_get_achievements(az_ra_achievement_t* out, int max_count) {
+    // TODO: Implement achievement list retrieval
+    return 0;
+}
+
+void az_ra_set_enabled(bool enabled) {
+    Settings::values.retroachievements_enabled = enabled;
+}
+
+bool az_ra_is_enabled(void) {
+    return Settings::values.retroachievements_enabled.GetValue();
+}
+
+// ---------------------------------------------------------------------------
 // Misc
 // ---------------------------------------------------------------------------
 

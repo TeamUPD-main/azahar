@@ -70,6 +70,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/NetPlayView.swift
     AzaharApp/Views/CheatsView.swift
     AzaharApp/Views/SystemFilesView.swift
+    AzaharApp/Views/RetroAchievementsView.swift
     AzaharApp/Views/AboutView.swift
     AzaharApp/Utilities/GamepadManager.swift
     AzaharApp/Utilities/UpdateChecker.swift

@@ -188,6 +188,18 @@ struct SettingsView: View {
                     SettingToggle(title: "Frame Time Recording", group: "Debugging", key: "record_frame_times")
                 }
 
+                settingsSection("RetroAchievements", icon: "trophy") {
+                    NavigationLink {
+                        RetroAchievementsView()
+                    } label: {
+                        Label("RetroAchievements Login", systemImage: "person.circle")
+                    }
+                    
+                    Text("Track achievements and compete on leaderboards")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 settingsSection("About", icon: "info.circle") {
                     HStack {
                         Text("Version")

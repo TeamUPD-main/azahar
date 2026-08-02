@@ -434,6 +434,72 @@ bool az_system_files_available(void);
 bool az_system_files_region_available(int region);
 
 // ---------------------------------------------------------------------------
+// RetroAchievements
+// ---------------------------------------------------------------------------
+
+/// User info structure
+typedef struct {
+    const char* username;
+    const char* display_name;
+    unsigned int score;
+    unsigned int score_softcore;
+    const char* token;
+    const char* avatar_url;
+} az_ra_user_t;
+
+/// Achievement info structure
+typedef struct {
+    unsigned int id;
+    const char* title;
+    const char* description;
+    const char* badge_url;
+    unsigned int points;
+    bool unlocked;
+} az_ra_achievement_t;
+
+/// Game info structure
+typedef struct {
+    unsigned int id;
+    const char* title;
+    const char* badge_url;
+    unsigned int num_achievements;
+    unsigned int num_unlocked;
+} az_ra_game_t;
+
+/// Event callback for achievements
+typedef void (*az_ra_event_callback)(int event_type, const char* title, const char* description, const char* badge_url);
+
+/// Login callbacks
+void az_ra_set_event_callback(az_ra_event_callback callback);
+
+/// Login with username and password
+void az_ra_login(const char* username, const char* password);
+
+/// Login with username and token
+void az_ra_login_with_token(const char* username, const char* token);
+
+/// Logout
+void az_ra_logout(void);
+
+/// Check if logged in
+bool az_ra_is_logged_in(void);
+
+/// Get current user info (returns NULL if not logged in)
+const az_ra_user_t* az_ra_get_user(void);
+
+/// Get current game info (returns NULL if no game loaded)
+const az_ra_game_t* az_ra_get_game(void);
+
+/// Get achievement list for current game
+int az_ra_get_achievements(az_ra_achievement_t* out, int max_count);
+
+/// Enable/disable RetroAchievements
+void az_ra_set_enabled(bool enabled);
+
+/// Check if RetroAchievements is enabled
+bool az_ra_is_enabled(void);
+
+// ---------------------------------------------------------------------------
 // Misc
 // ---------------------------------------------------------------------------
 
