@@ -53,8 +53,11 @@ if (APPLE AND NOT ENABLE_LIBRETRO)
     set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 
     if (IOS)
-        # Minimum iOS 14
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+        # Minimum iOS 18. Respect an explicit -DCMAKE_OSX_DEPLOYMENT_TARGET.
+        if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "18.0" CACHE STRING
+                "Minimum iOS deployment target")
+        endif()
 
         # Enable searching CMAKE_PREFIX_PATH for bundled dependencies.
         set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
@@ -358,12 +361,18 @@ endif()
 # System imported libraries
 # ======================
 
-# Prefer the -pthread flag on Linux, but not on iOS where Swift doesn't
-# understand it (pthreads is always available on iOS/Darwin anyway).
-if(NOT IOS)
+# Prefer the -pthread flag on non-iOS platforms. On iOS, pthreads is always
+# available and Swift doesn't understand the -pthread flag.
+if(IOS)
+    # FindThreads can't link its check programs when cross-compiling to iOS
+    # (and on device the checks can't run), so provide the target directly.
+    if(NOT TARGET Threads::Threads)
+        add_library(Threads::Threads INTERFACE IMPORTED)
+    endif()
+else()
     set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
 endif()
-find_package(Threads REQUIRED)
 
 if (ENABLE_QT)
     if (NOT USE_SYSTEM_QT)
