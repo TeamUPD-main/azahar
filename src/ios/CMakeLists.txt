@@ -131,8 +131,10 @@ set_target_properties(azahar_ios_app PROPERTIES
 
 # With the Ninja generator the XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER is
 # ignored; pass it to swiftc directly so the az_* C API is visible to Swift.
+# Also pass the SDK path explicitly so Swift can find UIKit and other iOS frameworks.
 target_compile_options(azahar_ios_app PRIVATE
     $<$<COMPILE_LANGUAGE:Swift>:-import-objc-header;$<TARGET_PROPERTY:azahar_ios_app,XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER>>
+    $<$<COMPILE_LANGUAGE:Swift>:-sdk;${CMAKE_OSX_SYSROOT}>
 )
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
