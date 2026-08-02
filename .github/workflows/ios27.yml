@@ -59,29 +59,52 @@ jobs:
           
           echo "Found app bundle: $APP_PATH"
           
+          # Fix bundle identifier in Info.plist (replace CMake variables with actual values)
+          BUNDLE_ID="org.azahar_emu.Azahar"
+          plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP_PATH/Info.plist"
+          plutil -replace CFBundleExecutable -string "Azahar" "$APP_PATH/Info.plist"
+          plutil -replace CFBundleName -string "Azahar" "$APP_PATH/Info.plist"
+          
+          echo "Updated Info.plist with bundle identifier: $BUNDLE_ID"
+          plutil -p "$APP_PATH/Info.plist" | grep -E "(CFBundleIdentifier|CFBundleExecutable|CFBundleName)"
+          
+          # Compile asset catalog to generate app icons
+          echo "Compiling asset catalog..."
+          xcrun actool src/ios/AzaharApp/Resources/Assets.xcassets \
+            --compile "$APP_PATH" \
+            --platform iphoneos \
+            --minimum-deployment-target 18.0 \
+            --app-icon AppIcon \
+            --output-partial-info-plist /tmp/partial-info.plist \
+            --compress-pngs
+          
+          # Verify Assets.car was created
+          if [ -f "$APP_PATH/Assets.car" ]; then
+            echo "Assets.car created successfully"
+            ls -lh "$APP_PATH/Assets.car"
+          else
+            echo "Warning: Assets.car not found"
+          fi
+          
+          # Copy entitlements to IPA root for visibility
+          if [ -f "src/ios/AzaharApp/Resources/Azahar.entitlements" ]; then
+            cp "src/ios/AzaharApp/Resources/Azahar.entitlements" "$APP_PATH/"
+            echo "Copied entitlements to app bundle"
+          fi
+          
           # Create IPA directory structure
           mkdir -p artifacts/Payload
           
           # Copy app bundle to Payload
           cp -r "$APP_PATH" artifacts/Payload/
           
-          # Verify entitlements file exists in the app bundle
-          if [ -f "$APP_PATH/Azahar.entitlements" ]; then
-            echo "Entitlements found in app bundle"
-            cat "$APP_PATH/Azahar.entitlements"
-          else
-            echo "Warning: Entitlements file not found in app bundle"
-          fi
+          # Verify final bundle structure
+          echo "App bundle contents:"
+          ls -la "artifacts/Payload/Azahar.app/" | head -20
           
-          # Copy entitlements to IPA root for visibility
-          if [ -f "src/ios/AzaharApp/Resources/Azahar.entitlements" ]; then
-            cp "src/ios/AzaharApp/Resources/Azahar.entitlements" artifacts/Payload/Azahar.app/
-            echo "Copied entitlements to app bundle"
-          fi
-          
-          # Verify Info.plist and bundle identifier
-          echo "Bundle identifier:"
-          plutil -extract CFBundleIdentifier raw artifacts/Payload/Azahar.app/Info.plist || echo "Could not extract bundle identifier"
+          # Verify Info.plist values
+          echo "Final bundle identifier:"
+          plutil -extract CFBundleIdentifier raw "artifacts/Payload/Azahar.app/Info.plist"
           
           # Create the IPA (just a zip with .ipa extension)
           cd artifacts
@@ -90,7 +113,7 @@ jobs:
           
           # Verify IPA contents
           echo "IPA contents:"
-          unzip -l artifacts/Azahar.ipa | head -30
+          unzip -l artifacts/Azahar.ipa | grep -E "(Info.plist|Assets.car|Azahar$|entitlements)" | head -20
           
           # Show IPA size
           ls -lh artifacts/Azahar.ipa
