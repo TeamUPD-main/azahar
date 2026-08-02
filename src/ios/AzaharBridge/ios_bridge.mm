@@ -53,7 +53,9 @@
 #include "input_common/main.h"
 #include "input_common/udp/client.h"
 
-namespace {
+// ---------------------------------------------------------------------------
+// Internal state (file scope, single-TU only)
+// ---------------------------------------------------------------------------
 std::unique_ptr<EmuWindowIOS> window;
 std::unique_ptr<EmuWindowIOS> secondary_window;
 std::unique_ptr<PlayTime::PlayTimeManager> play_time_manager;
@@ -78,13 +80,11 @@ float pending_secondary_scale = 1.0f;
 std::string inserted_cartridge;
 std::string pending_rom_path;
 
-} // Anonymous namespace
-
-// Forward declarations (definitions are static, file scope).
+// Forward declarations
 static void RunCitra(const std::string& filepath);
 static void TryShutdown();
 
-// Callbacks from the Swift frontend. Defined at file scope so other bridge
+// Callbacks from the Swift frontend.
 // translation units (applets, etc.) can trigger them.
 az_on_alert_fn on_alert = nullptr;
 az_on_core_error_fn on_core_error = nullptr;
@@ -126,8 +126,6 @@ std::unique_ptr<EmuWindowIOS> CreateEmuWindow(CAMetalLayer* layer, bool is_secon
     auto emu_window = std::make_unique<EmuWindowIOS>(layer, is_secondary);
     return emu_window;
 }
-
-} // Anonymous namespace
 
 // ---------------------------------------------------------------------------
 // Public C API implementation (az_*)
