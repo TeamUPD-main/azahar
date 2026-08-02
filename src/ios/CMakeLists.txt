@@ -77,8 +77,15 @@ set(AZAHAR_SWIFT_SOURCES
 )
 
 # ---------------------------------------------------------------------------
-# azahar_ios_app — the SwiftUI executable (macOS XIP bundle on iOS)
+# Swift support for the iOS app target (CMake supports Swift with Ninja).
+# For iOS cross-compilation swiftc needs the target triple; set it before
+# enabling the language so CMake passes it to both swiftc and the linker.
 # ---------------------------------------------------------------------------
+if(NOT CMAKE_Swift_COMPILER_TARGET AND CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_Swift_COMPILER_TARGET
+        "${CMAKE_OSX_ARCHITECTURES}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+enable_language(Swift)
 
 add_executable(azahar_ios_app MACOSX_BUNDLE
     ${AZAHAR_SWIFT_SOURCES}
@@ -105,6 +112,14 @@ set_target_properties(azahar_ios_app PROPERTIES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchScreen_Generation YES
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
+    XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
+    LINKER_LANGUAGE Swift
+)
+
+# With the Ninja generator the XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER is
+# ignored; pass it to swiftc directly so the az_* C API is visible to Swift.
+target_compile_options(azahar_ios_app PRIVATE
+    $<$<COMPILE_LANGUAGE:Swift>:-import-objc-header;$<TARGET_PROPERTY:azahar_ios_app,XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER>>
 )
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
