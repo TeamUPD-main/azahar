@@ -19,6 +19,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Initialize rcheevos submodule
+        run: |
+          git submodule update --init --recursive externals/rcheevos/rcheevos || true
+          if [ ! -d "externals/rcheevos/rcheevos/include" ]; then
+            echo "rcheevos submodule not properly initialized, cloning manually..."
+            cd externals/rcheevos
+            git clone https://github.com/RetroAchievements/rcheevos.git rcheevos
+            cd ../..
+          fi
+
       - name: Set up cache
         uses: actions/cache@v5
         with:
