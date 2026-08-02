@@ -313,7 +313,7 @@ int64_t az_get_running_title_id(void) {
 // ---------------------------------------------------------------------------
 
 void az_emu_surface_set(void* metal_layer, float scale) {
-    auto* layer = static_cast<CAMetalLayer*>(metal_layer);
+    auto* layer = (__bridge CAMetalLayer*)metal_layer;
     pending_primary_layer = layer;
     pending_primary_scale = scale;
 
@@ -334,7 +334,7 @@ void az_emu_surface_destroy(void) {
 }
 
 void az_emu_secondary_surface_set(void* metal_layer, float scale) {
-    auto* layer = static_cast<CAMetalLayer*>(metal_layer);
+    auto* layer = (__bridge CAMetalLayer*)metal_layer;
     pending_secondary_layer = layer;
     pending_secondary_scale = scale;
 
