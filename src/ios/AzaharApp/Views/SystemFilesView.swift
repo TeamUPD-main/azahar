@@ -91,11 +91,12 @@ struct SystemFilesView: View {
 }
 
 /// Types of system archives.
-enum SystemArchiveType: String, CaseIterable {
+enum SystemArchiveType: String, CaseIterable, Identifiable {
     case sharedFont = "Shared Font"
     case touchScreenCalibration = "Touch Screen Calibration"
     case circlePadCalibration = "Circle Pad Calibration"
 
+    var id: String { rawValue }
     var displayName: String { rawValue }
     var icon: String {
         switch self {

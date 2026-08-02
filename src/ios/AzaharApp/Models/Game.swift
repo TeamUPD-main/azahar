@@ -29,13 +29,13 @@ enum GameScanner {
             "sdmc/Nintendo 3DS/00000000000000000000000000000000/"
             + "00000000000000000000000000000000/title/00040000"
         )
-        games.append(contentsOf: scanDirectory(sdmcTitles, mediaType: AZ_MEDIA_TYPE_SDMC))
+        games.append(contentsOf: scanDirectory(sdmcTitles, mediaType: Int32(AZ_MEDIA_TYPE_SDMC)))
 
         // Scan NAND directory
         let nandTitles = (userDirectory as NSString).appendingPathComponent(
             "nand/00000000000000000000000000000000/title/00040000"
         )
-        games.append(contentsOf: scanDirectory(nandTitles, mediaType: AZ_MEDIA_TYPE_NAND))
+        games.append(contentsOf: scanDirectory(nandTitles, mediaType: Int32(AZ_MEDIA_TYPE_NAND)))
 
         // Scan user-configured directories (add more paths as needed)
         let docsDir = NSSearchPathForDirectoriesInDomains(
@@ -55,7 +55,7 @@ enum GameScanner {
                     path: fullPath,
                     title: (file as NSString).deletingPathExtension,
                     titleId: UInt64(bitPattern: titleId),
-                    mediaType: AZ_MEDIA_TYPE_SDMC
+                    mediaType: Int32(AZ_MEDIA_TYPE_SDMC)
                 ))
             }
         }

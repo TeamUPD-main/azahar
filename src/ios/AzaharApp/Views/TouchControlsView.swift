@@ -28,7 +28,7 @@ struct TouchControlsView: View {
                     onPositionChanged: { x, y in
                         let nx = Float(x / (30 * scale))
                         let ny = Float(y / (30 * scale))
-                        az_analog_event(AZ_STICK_LEFT, nx, ny)
+                        az_analog_event(Int32(AZ_STICK_LEFT), nx, ny)
                     }
                 )
 
@@ -40,7 +40,7 @@ struct TouchControlsView: View {
                     onPositionChanged: { x, y in
                         let nx = Float(x / (30 * scale))
                         let ny = Float(y / (30 * scale))
-                        az_analog_event(AZ_STICK_C, nx, ny)
+                        az_analog_event(Int32(AZ_STICK_C), nx, ny)
                     }
                 )
 
@@ -85,26 +85,26 @@ struct DPadView: View {
                 .frame(width: 28 * scale, height: 28 * scale)
 
             // Up
-            DPadDirection(direction: .up, size: directionSize * scale) {
-                az_button_event(AZ_DPAD_UP, true)
+            DPadButton(direction: .up, size: directionSize * scale) {
+                az_button_event(Int32(AZ_DPAD_UP), true)
             }
             .position(x: 0, y: -24 * scale)
 
             // Down
-            DPadDirection(direction: .down, size: directionSize * scale) {
-                az_button_event(AZ_DPAD_DOWN, true)
+            DPadButton(direction: .down, size: directionSize * scale) {
+                az_button_event(Int32(AZ_DPAD_DOWN), true)
             }
             .position(x: 0, y: 24 * scale)
 
             // Left
-            DPadDirection(direction: .left, size: directionSize * scale) {
-                az_button_event(AZ_DPAD_LEFT, true)
+            DPadButton(direction: .left, size: directionSize * scale) {
+                az_button_event(Int32(AZ_DPAD_LEFT), true)
             }
             .position(x: -24 * scale, y: 0)
 
             // Right
-            DPadDirection(direction: .right, size: directionSize * scale) {
-                az_button_event(AZ_DPAD_RIGHT, true)
+            DPadButton(direction: .right, size: directionSize * scale) {
+                az_button_event(Int32(AZ_DPAD_RIGHT), true)
             }
             .position(x: 24 * scale, y: 0)
         }
@@ -125,7 +125,7 @@ enum DPadDirection {
     }
 }
 
-struct DPadDirection: View {
+struct DPadButton: View {
     let direction: DPadDirection
     let size: CGFloat
     let onPress: () -> Void
@@ -167,10 +167,10 @@ struct FaceButtonsView: View {
 
     var body: some View {
         ZStack {
-            FaceButton(label: "A", button: AZ_BUTTON_A, offset: CGSize(width: radius * scale, height: 0))
-            FaceButton(label: "B", button: AZ_BUTTON_B, offset: CGSize(width: 0, height: radius * scale))
-            FaceButton(label: "X", button: AZ_BUTTON_X, offset: CGSize(width: 0, height: -radius * scale))
-            FaceButton(label: "Y", button: AZ_BUTTON_Y, offset: CGSize(width: -radius * scale, height: 0))
+            FaceButton(label: "A", button: Int32(AZ_BUTTON_A), offset: CGSize(width: radius * scale, height: 0))
+            FaceButton(label: "B", button: Int32(AZ_BUTTON_B), offset: CGSize(width: 0, height: radius * scale))
+            FaceButton(label: "X", button: Int32(AZ_BUTTON_X), offset: CGSize(width: 0, height: -radius * scale))
+            FaceButton(label: "Y", button: Int32(AZ_BUTTON_Y), offset: CGSize(width: -radius * scale, height: 0))
         }
     }
 }

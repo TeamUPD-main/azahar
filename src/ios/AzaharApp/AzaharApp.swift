@@ -28,8 +28,6 @@ final class AppState: ObservableObject {
     @Published var showingSettings = false
     @Published var showingDocumentPicker = false
 
-    private var emulatorManager: EmulationManager?
-
     func initialize() {
         let documentsPath = NSSearchPathForDirectoriesInDomains(
             .documentDirectory, .userDomainMask, true
@@ -42,7 +40,6 @@ final class AppState: ObservableObject {
         az_log_device_info()
         az_play_time_init()
 
-        emulatorManager = EmulationManager()
         scanGames()
     }
 

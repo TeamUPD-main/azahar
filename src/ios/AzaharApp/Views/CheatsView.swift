@@ -26,10 +26,13 @@ struct CheatsView: View {
                 )
             } else {
                 ForEach($cheats) { $cheat in
-                    Toggle {
-                        cheat.enabled.toggle()
-                        _ = az_cheats_set_enabled(cheat.id, cheat.enabled)
-                    } label: {
+                    Toggle(isOn: Binding(
+                        get: { cheat.enabled },
+                        set: { newValue in
+                            cheat.enabled = newValue
+                            _ = az_cheats_set_enabled(cheat.id, newValue)
+                        }
+                    )) {
                         VStack(alignment: .leading) {
                             Text(cheat.name).font(.headline)
                             if !cheat.notes.isEmpty {
