@@ -28,8 +28,6 @@ struct FrameBuffer {
     bool has_frame = false;
 };
 
-namespace {
-
 /// Converts a BGRA32 pixel buffer into an RGB565 frame at the requested size,
 /// honoring mirror/invert. Runs on the capture queue.
 void ConvertBGRAtoRGB565(CVPixelBufferRef pixel_buffer, FrameBuffer& buffer) {
@@ -69,7 +67,6 @@ void ConvertBGRAtoRGB565(CVPixelBufferRef pixel_buffer, FrameBuffer& buffer) {
             if (mirror) {
                 sx = src_width - 1 - sx;
             }
-            // Pixel is BGRA (bytes: blue, green, red, alpha)
             const u8* p = row + sx * 4;
             const u16 rgb565 = static_cast<u16>(((p[2] >> 3) << 11) | ((p[1] >> 2) << 5) | (p[0] >> 3));
             converted[static_cast<std::size_t>(y) * out_width + x] = rgb565;
@@ -84,14 +81,14 @@ void ConvertBGRAtoRGB565(CVPixelBufferRef pixel_buffer, FrameBuffer& buffer) {
     buffer.has_frame = true;
 }
 
-} // Anonymous namespace
+} // namespace Camera::IOS
 
-// MARK: - Sample buffer delegate
+// MARK: - Sample buffer delegate (must be at global scope for ObjC)
 
 /// Receives camera frames on the capture queue and writes RGB565 data into the
 /// shared FrameBuffer.
 @interface AZCameraDelegate : NSObject <AVCaptureVideoDataOutputSampleBufferDelegate>
-@property(nonatomic) std::shared_ptr<FrameBuffer> frameBuffer;
+@property(nonatomic) std::shared_ptr<Camera::IOS::FrameBuffer> frameBuffer;
 @end
 
 @implementation AZCameraDelegate
@@ -102,9 +99,11 @@ void ConvertBGRAtoRGB565(CVPixelBufferRef pixel_buffer, FrameBuffer& buffer) {
     if (!pixel_buffer || !self.frameBuffer) {
         return;
     }
-    ConvertBGRAtoRGB565(pixel_buffer, *self.frameBuffer);
+    Camera::IOS::ConvertBGRAtoRGB565(pixel_buffer, *self.frameBuffer);
 }
 @end
+
+namespace Camera::IOS {
 
 // MARK: - Interface
 

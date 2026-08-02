@@ -184,53 +184,6 @@ void az_swkbd_cancel(void) {
     swkbd_cv.notify_all();
 }
 
-// ---------------------------------------------------------------------------
-// Mii selector
-// ---------------------------------------------------------------------------
-
-namespace MiiSelector {
-
-void IOSMiiSelector::Setup(const Frontend::MiiSelectorConfig& config) {
-    Frontend::MiiSelector::Setup(config);
-
-    {
-        std::lock_guard<std::mutex> lock(mii_mutex);
-        mii_list = Frontend::LoadMiis();
-        mii_done = false;
-        mii_cancelled = false;
-        mii_selected_index = -1;
-    }
-
-    // Notify Swift that the Mii selector should appear
-    if (on_mii_request) {
-        on_mii_request();
-    }
-
-    // Block until the user picks a Mii or cancels
-    std::unique_lock<std::mutex> lock(mii_mutex);
-    mii_cv.wait(lock, [] { return mii_done; });
-
-    if (mii_cancelled || mii_selected_index < 0) {
-        Finalize(1, Mii::MiiData{});
-        return;
-    }
-
-    // Index 0 is the 'Standard Mii'; user Miis follow at 1..N
-    if (mii_selected_index == 0) {
-        Finalize(0, HLE::Applets::MiiSelector::GetStandardMiiResult().selected_mii_data);
-        return;
-    }
-
-    const std::size_t idx = static_cast<std::size_t>(mii_selected_index - 1);
-    if (idx < mii_list.size()) {
-        Finalize(0, mii_list[idx]);
-    } else {
-        Finalize(1, Mii::MiiData{});
-    }
-}
-
-} // namespace MiiSelector
-
 bool az_mii_select(int index) {
     std::lock_guard<std::mutex> lock(mii_mutex);
     if (mii_done) return false;
