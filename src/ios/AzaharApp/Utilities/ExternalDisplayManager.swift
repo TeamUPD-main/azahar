@@ -151,8 +151,15 @@ class ExternalDisplayManager: ObservableObject {
         externalWindow = nil
         
         // Create new window for external display
+        // Use the external screen's coordinate space
         let window = UIWindow(frame: screen.bounds)
-        window.screen = screen
+        
+        // Modern approach for iOS 13+: find or create window scene for external screen
+        if let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.screen == screen }) {
+            window.windowScene = windowScene
+        }
         
         // Create a hosting controller with MetalView for external display
         let hostingController = UIHostingController(

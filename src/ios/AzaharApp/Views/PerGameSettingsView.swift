@@ -296,15 +296,18 @@ struct CheatManagementView: View {
         var cheatEntries = [az_cheat_entry](repeating: az_cheat_entry(), count: 100)
         let count = az_cheats_load(cheatFile, &cheatEntries, 100)
         
-        if count > 0 {
-            cheats = (0..<Int(count)).map { i in
-                let entry = cheatEntries[i]
-                return CheatEntry(
-                    id: entry.id,
-                    name: String(cString: entry.name),
-                    enabled: entry.enabled
-                )
-            }
+        guard count > 0 else {
+            isLoading = false
+            return
+        }
+        
+        cheats = (0..<Int(count)).map { i in
+            let entry = cheatEntries[i]
+            return CheatEntry(
+                id: entry.id,
+                name: String(cString: entry.name),
+                enabled: entry.enabled
+            )
         }
         
         isLoading = false
