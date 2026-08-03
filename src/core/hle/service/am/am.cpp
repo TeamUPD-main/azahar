@@ -4994,8 +4994,98 @@ Module::~Module() {
     stop_scan_flag = true;
 }
 
+InstallStatus InstallFromNus(u64 title_id, int version) {
+    LOG_DEBUG(Service_AM, "Downloading {:X}", title_id);
+
+    CIAFile install_file{Core::System::GetInstance(), GetTitleMediaType(title_id)};
+
+    std::string path = fmt::format("/ccs/download/{:016X}/tmd", title_id);
+    if (version != -1) {
+        path += fmt::format(".{}", version);
+    }
+    auto tmd_response = Core::NUS::Download(path);
+    if (!tmd_response) {
+        LOG_ERROR(Service_AM, "Failed to download tmd for {:016X}", title_id);
+        return InstallStatus::ErrorFileNotFound;
+    }
+    FileSys::TitleMetadata tmd;
+    tmd.Load(*tmd_response);
+
+    path = fmt::format("/ccs/download/{:016X}/cetk", title_id);
+    auto cetk_response = Core::NUS::Download(path);
+    if (!cetk_response) {
+        LOG_ERROR(Service_AM, "Failed to download cetk for {:016X}", title_id);
+        return InstallStatus::ErrorFileNotFound;
+    }
+
+    std::vector<u8> content;
+    const auto content_count = tmd.GetContentCount();
+    for (std::size_t i = 0; i < content_count; ++i) {
+        const std::string filename = fmt::format("{:08x}", tmd.GetContentIDByIndex(i));
+        path = fmt::format("/ccs/download/{:016X}/{}", title_id, filename);
+        const auto temp_response = Core::NUS::Download(path);
+        if (!temp_response) {
+            LOG_ERROR(Service_AM, "Failed to download content for {:016X}", title_id);
+            return InstallStatus::ErrorFileNotFound;
+        }
+        content.insert(content.end(), temp_response->begin(), temp_response->end());
+    }
+
+    FileSys::CIAHeader fake_header{
+        .header_size = sizeof(FileSys::CIAHeader),
+        .type = 0,
+        .version = 0,
+        .cert_size = 0,
+        .tik_size = static_cast<u32_le>(cetk_response->size()),
+        .tmd_size = static_cast<u32_le>(tmd_response->size()),
+        .meta_size = 0,
+    };
+    for (u16 i = 0; i < content_count; ++i) {
+        fake_header.SetContentPresent(i);
+    }
+    std::vector<u8> header_data(sizeof(fake_header));
+    std::memcpy(header_data.data(), &fake_header, sizeof(fake_header));
+
+    std::size_t current_offset = 0;
+    const auto write_to_cia_file_aligned = [&install_file, &current_offset](std::vector<u8>& data) {
+        const u64 offset =
+            Common::AlignUp(current_offset + data.size(), FileSys::CIA_SECTION_ALIGNMENT);
+        data.resize(offset - current_offset, 0);
+        const auto result =
+            install_file.Write(current_offset, data.size(), true, false, data.data());
+        if (result.Failed()) {
+            LOG_ERROR(Service_AM, "CIA file installation aborted with error code {:08x}",
+                      result.Code().raw);
+            return InstallStatus::ErrorAborted;
+        }
+        current_offset += data.size();
+        return InstallStatus::Success;
+    };
+
+    auto result = write_to_cia_file_aligned(header_data);
+    if (result != InstallStatus::Success) {
+        return result;
+    }
+
+    result = write_to_cia_file_aligned(*cetk_response);
+    if (result != InstallStatus::Success) {
+        return result;
+    }
+
+    result = write_to_cia_file_aligned(*tmd_response);
+    if (result != InstallStatus::Success) {
+        return result;
+    }
+
+    result = write_to_cia_file_aligned(content);
+    if (result != InstallStatus::Success) {
+        return result;
+    }
+    return InstallStatus::Success;
+}
+
 std::shared_ptr<Module> GetModule(Core::System& system) {
-    auto am = system.ServiceManager().GetService<Service::AM::Module::Interface>("am:u");
+    auto am = system.ServiceManager().GetService<AM_U>("am:u");
     if (!am)
         return nullptr;
     return am->GetModule();

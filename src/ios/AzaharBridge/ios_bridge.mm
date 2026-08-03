@@ -225,16 +225,52 @@ static void RunCitra(const std::string& filepath) {
     // Register input
     InputManager::Init();
 
+    // Load the game (critical: must be called before RunLoop!)
+    window->MakeCurrent();
+    const Core::System::ResultStatus load_result = 
+        system.Load(*window, filepath, secondary_window.get());
+    
+    if (load_result != Core::System::ResultStatus::Success) {
+        LOG_CRITICAL(Frontend, "Failed to load game: {}", static_cast<u32>(load_result));
+        last_result.store(static_cast<int>(load_result));
+        return;
+    }
+
     stop_run = false;
     pause_emulation = false;
 
+    // Load disk cache (shader cache, etc.)
+    // Note: iOS doesn't have a progress callback yet, but the cache still loads
     system.GPU().ApplyPerProgramSettings(title_id);
+    system.GPU().Renderer().Rasterizer()->LoadDefaultDiskResources(stop_run, nullptr);
 
     SCOPE_EXIT({ TryShutdown(); });
 
-    system.RunLoop();
+    // Run the emulation loop
+    while (!stop_run) {
+        if (!pause_emulation) {
+            const auto result = system.RunLoop();
+            if (result == Core::System::ResultStatus::Success) {
+                continue;
+            }
+            if (result == Core::System::ResultStatus::ShutdownRequested) {
+                last_result.store(static_cast<int>(result));
+                return;
+            } else {
+                // Core error occurred
+                LOG_ERROR(Frontend, "Core error during RunLoop: {}", static_cast<u32>(result));
+                last_result.store(static_cast<int>(result));
+                // TODO: Call error handler callback if set
+                return;
+            }
+        } else {
+            // Paused: wait for resume or stop
+            std::unique_lock pause_lock{paused_mutex};
+            running_cv.wait(pause_lock, [] { return !pause_emulation || stop_run; });
+        }
+    }
 
-    // If we reach here the loop exited normally or with an error
+    last_result.store(AZ_CORE_ERROR_NONE);
 }
 
 static void TryShutdown() {
@@ -650,6 +686,11 @@ bool az_is_full_console_linked(void) {
 
 void az_unlink_console(void) {
     HW::UniqueData::UnlinkConsole();
+}
+
+int az_download_title_from_nus(int64_t title_id) {
+    auto status = Service::AM::InstallFromNus(static_cast<u64>(title_id));
+    return static_cast<int>(status);
 }
 
 // ---------------------------------------------------------------------------

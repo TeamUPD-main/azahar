@@ -116,11 +116,29 @@ struct SettingsView: View {
                     )
                     SettingToggle(
                         title: "Enable Audio Stretching",
+                        description: "Stretches audio to maintain sync with video",
                         group: "Audio", key: "enable_audio_stretching"
                     )
                     SettingToggle(
+                        title: "Enable Realtime Audio",
+                        description: "Scales audio playback speed to account for drops in emulation framerate",
+                        group: "Audio", key: "enable_realtime_audio"
+                    )
+                    SettingToggle(
                         title: "Simulate Headphones",
+                        description: "Simulates whether headphones are plugged in",
                         group: "Audio", key: "simulate_headphones_plugged"
+                    )
+                    SettingPicker(
+                        title: "Audio Input Device",
+                        group: "Audio", key: "input_type",
+                        options: [
+                            (0, "Auto"),
+                            (1, "None"),
+                            (2, "Static Noise"),
+                            (3, "Real (Cubeb)"),
+                            (4, "Real (OpenAL)")
+                        ]
                     )
                 }
 
@@ -194,6 +212,31 @@ struct SettingsView: View {
                 settingsSection("Debugging", icon: "ant") {
                     SettingToggle(title: "Renderer Debug", group: "Debugging", key: "renderer_debug")
                     SettingToggle(title: "Frame Time Recording", group: "Debugging", key: "record_frame_times")
+                    
+                    SettingPicker(
+                        title: "Log Level",
+                        group: "Debugging", key: "log_filter_level",
+                        options: [
+                            (0, "Trace"),
+                            (1, "Debug"),
+                            (2, "Info"),
+                            (3, "Warning"),
+                            (4, "Error"),
+                            (5, "Critical")
+                        ]
+                    )
+                    
+                    SettingToggle(
+                        title: "Log Renderer",
+                        description: "Enable detailed graphics renderer logging",
+                        group: "Debugging", key: "log_renderer"
+                    )
+                    
+                    SettingToggle(
+                        title: "Log Stack Traces",
+                        description: "Include stack traces in crash reports",
+                        group: "Debugging", key: "log_stack_trace"
+                    )
                 }
 
                 settingsSection("RetroAchievements", icon: "trophy") {

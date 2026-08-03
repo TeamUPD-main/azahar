@@ -1144,6 +1144,14 @@ private:
     friend class boost::serialization::access;
 };
 
+/**
+ * Downloads and installs title from the Nintendo Update Service.
+ * @param title_id the title_id to download
+ * @param version the version to download (-1 for latest)
+ * @returns whether the install was successful or error code
+ */
+InstallStatus InstallFromNus(u64 title_id, int version = -1);
+
 std::shared_ptr<Module> GetModule(Core::System& system);
 
 void InstallInterfaces(Core::System& system);

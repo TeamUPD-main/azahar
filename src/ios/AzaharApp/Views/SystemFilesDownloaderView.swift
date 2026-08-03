@@ -5,23 +5,36 @@
 import SwiftUI
 import Foundation
 
-/// System Files Downloader - downloads and installs required 3DS system files
+/// System Files Downloader - downloads and installs required 3DS system files from NUS
 struct SystemFilesDownloaderView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var isDownloading = false
     @State private var downloadProgress: Double = 0
     @State private var currentFile = ""
-    @State private var statusMessage = "Ready to check system files"
+    @State private var statusMessage = "Ready to download system files"
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var downloadComplete = false
+    @State private var selectedRegion = 1  // Default to USA
+    @State private var totalTitles = 0
+    @State private var downloadedTitles = 0
     
     private var systemFilesAvailable: Bool {
-        // Force re-check or consider caching mechanism if needed, 
-        // but current az_system_files_available() should be sufficient.
-        az_system_files_available()
+        var status = [false, false]
+        az_get_are_system_titles_installed(&status)
+        return status[0] && status[1]  // Both Old3DS and New3DS
     }
+    
+    private let regions = [
+        (0, "Japan"),
+        (1, "USA"),
+        (2, "Europe"),
+        (3, "Australia"),
+        (4, "China"),
+        (5, "Korea"),
+        (6, "Taiwan")
+    ]
     
     var body: some View {
         NavigationStack {
@@ -49,8 +62,12 @@ struct SystemFilesDownloaderView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 
-                                ProgressView(value: downloadProgress)
+                                ProgressView(value: downloadProgress, total: Double(totalTitles))
                                     .progressViewStyle(.linear)
+                                
+                                Text("\(downloadedTitles) / \(totalTitles) titles installed")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -66,38 +83,79 @@ struct SystemFilesDownloaderView: View {
                         installed: az_are_keys_available()
                     )
                     FileStatusRow(
-                        name: "Shared Fonts",
-                        detail: "Built into Azahar",
-                        installed: true
+                        name: "Old 3DS System Titles",
+                        detail: "Base system firmware",
+                        installed: {
+                            var status = [false, false]
+                            az_get_are_system_titles_installed(&status)
+                            return status[0]
+                        }()
                     )
                     FileStatusRow(
-                        name: "3DS System Titles",
-                        detail: "Required for Home Menu boot",
-                        installed: systemFilesAvailable
+                        name: "New 3DS System Titles",
+                        detail: "Enhanced system firmware",
+                        installed: {
+                            var status = [false, false]
+                            az_get_are_system_titles_installed(&status)
+                            return status[1]
+                        }()
                     )
                 } header: {
                     Text("System Files")
                 }
                 
-                Section {
-                    if !systemFilesAvailable {
-                        Text("⚠️ 3DS system titles are missing. These are required to boot the Home Menu.")
-                            .font(.caption)
+                if !az_are_keys_available() {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("⚠️ AES Keys Missing")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            
+                            Text("AES keys are required to download and decrypt system files. Please place your aes_keys.txt file in the Documents/azahar/sysdata/ folder.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Requirements")
+                    }
+                }
+                
+                if !systemFilesAvailable && az_are_keys_available() {
+                    Section {
+                        Picker("Region", selection: $selectedRegion) {
+                            ForEach(regions, id: \.0) { region in
+                                Text(region.1).tag(region.0)
+                            }
+                        }
+                        .pickerStyle(.menu)
                         
-                        Text("You can install them from a decrypted NAND dump of your own 3DS, or use the download option below.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("This will download and install 3DS system titles from Nintendo's servers. The download includes:")
+                                .font(.caption)
+                            
+                            Text("• Old 3DS system titles (Home Menu, system apps)")
+                                .font(.caption2)
+                            Text("• New 3DS system titles (enhanced firmware)")
+                                .font(.caption2)
+                            
+                            Text("\nDownload size: ~150-200 MB")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    } header: {
+                        Text("Download Options")
                     }
                     
-                    if isDownloading {
-                        Button(role: .destructive) {
-                            cancelDownload()
-                        } label: {
-                            Label("Cancel", systemImage: "xmark.circle")
+                    Section {
+                        if isDownloading {
+                            Button(role: .destructive) {
+                                cancelDownload()
+                            } label: {
+                                Label("Cancel Download", systemImage: "xmark.circle")
+                            }
                         }
                     }
-                } header: {
-                    Text("Information")
                 }
             }
             .navigationTitle("System Files Setup")
@@ -105,7 +163,7 @@ struct SystemFilesDownloaderView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if !isDownloading {
-                        Button("Cancel") { dismiss() }
+                        Button("Close") { dismiss() }
                     }
                 }
                 
@@ -113,7 +171,7 @@ struct SystemFilesDownloaderView: View {
                     if downloadComplete {
                         Button("Done") { dismiss() }
                             .fontWeight(.semibold)
-                    } else if !isDownloading && !systemFilesAvailable {
+                    } else if !isDownloading && !systemFilesAvailable && az_are_keys_available() {
                         Button("Download") { startDownload() }
                             .fontWeight(.semibold)
                     }
@@ -138,31 +196,71 @@ struct SystemFilesDownloaderView: View {
         if systemFilesAvailable {
             return "System Files Ready"
         }
+        if !az_are_keys_available() {
+            return "AES Keys Required"
+        }
         return "System Files Required"
     }
     
     private func startDownload() {
         isDownloading = true
         downloadProgress = 0
+        downloadedTitles = 0
         statusMessage = "Preparing download..."
         
         Task {
             do {
-                // Download AES keys if missing
-                if !az_are_keys_available() {
+                // Get all system title IDs (Old3DS + New3DS = 6)
+                let maxTitles = 200
+                var titleIds = [Int64](repeating: 0, count: maxTitles)
+                let count = Int(az_get_system_title_ids(6, Int32(selectedRegion), &titleIds, Int32(maxTitles)))
+                
+                guard count > 0 else {
+                    throw SystemFilesError.noTitles
+                }
+                
+                let titles = Array(titleIds.prefix(count))
+                totalTitles = titles.count
+                
+                await MainActor.run {
+                    statusMessage = "Downloading \(totalTitles) system titles..."
+                }
+                
+                // Download titles with retry logic
+                let retryCount = 3
+                for (index, titleId) in titles.enumerated() {
                     await MainActor.run {
-                        currentFile = "AES Keys"
-                        downloadProgress = 0.2
-                        statusMessage = "Downloading AES keys..."
+                        currentFile = String(format: "Title %016llX (%d/%d)", titleId, index + 1, totalTitles)
                     }
-                    let keysURL = "https://raw.githubusercontent.com/azahar-emu/azahar-system-files/main/aes_keys.txt"
-                    try await downloadFile(from: keysURL, to: "sysdata/aes_keys.txt")
+                    
+                    var success = false
+                    for attempt in 1...retryCount {
+                        let result = az_download_title_from_nus(titleId)
+                        
+                        if result == 0 {  // InstallStatus::Success
+                            success = true
+                            break
+                        } else if attempt < retryCount {
+                            // Retry after delay
+                            try await Task.sleep(nanoseconds: 3_000_000_000)  // 3 seconds
+                        } else {
+                            // Failed after all retries
+                            throw SystemFilesError.downloadFailed(titleId, result)
+                        }
+                    }
+                    
+                    if success {
+                        await MainActor.run {
+                            downloadedTitles += 1
+                            downloadProgress = Double(downloadedTitles)
+                        }
+                    }
                 }
                 
                 await MainActor.run {
-                    downloadProgress = 1.0
+                    downloadProgress = Double(totalTitles)
                     downloadComplete = true
-                    statusMessage = "System files downloaded successfully"
+                    statusMessage = "All system files downloaded successfully"
                     isDownloading = false
                 }
                 
@@ -180,30 +278,6 @@ struct SystemFilesDownloaderView: View {
     private func cancelDownload() {
         isDownloading = false
         statusMessage = "Download cancelled"
-    }
-    
-    private func downloadFile(from urlString: String, to relativePath: String) async throws {
-        guard let url = URL(string: urlString) else {
-            throw SystemFilesError.invalidURL
-        }
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw SystemFilesError.downloadFailed(urlString)
-        }
-        
-        // Write to the user directory
-        let userDir = NSSearchPathForDirectoriesInDomains(
-            .documentDirectory, .userDomainMask, true
-        ).first ?? ""
-        let destPath = (userDir as NSString).appendingPathComponent(relativePath)
-        
-        try FileManager.default.createDirectory(
-            atPath: (destPath as NSString).deletingLastPathComponent,
-            withIntermediateDirectories: true
-        )
-        try data.write(to: URL(fileURLWithPath: destPath))
     }
 }
 
@@ -239,15 +313,24 @@ struct FileStatusRow: View {
 }
 
 enum SystemFilesError: LocalizedError {
-    case invalidURL
-    case downloadFailed(String)
+    case noTitles
+    case downloadFailed(Int64, Int)
     
     var errorDescription: String? {
         switch self {
-        case .invalidURL:
-            return "Invalid download URL"
-        case .downloadFailed(let file):
-            return "Failed to download \(file)"
+        case .noTitles:
+            return "No system titles found for the selected region"
+        case .downloadFailed(let titleId, let status):
+            let statusMsg: String
+            switch status {
+            case 1: statusMsg = "Failed to open file"
+            case 2: statusMsg = "File not found on server"
+            case 3: statusMsg = "Download aborted"
+            case 4: statusMsg = "Invalid title data"
+            case 5: statusMsg = "Encrypted content (keys missing)"
+            default: statusMsg = "Unknown error"
+            }
+            return String(format: "Failed to download title %016llX: %@", titleId, statusMsg)
         }
     }
 }

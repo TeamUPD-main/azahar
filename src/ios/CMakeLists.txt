@@ -210,6 +210,14 @@ target_sources(azahar_ios_app PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/WhatsNew.json"
 )
 
+# Add button PNG assets as bundle resources
+file(GLOB BUTTON_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Buttons/*.png")
+set_source_files_properties(
+    ${BUTTON_ASSETS}
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
+)
+target_sources(azahar_ios_app PRIVATE ${BUTTON_ASSETS})
+
 # Embed MoltenVK in the app bundle
 if(EXISTS "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib")
     add_custom_command(TARGET azahar_ios_app POST_BUILD
