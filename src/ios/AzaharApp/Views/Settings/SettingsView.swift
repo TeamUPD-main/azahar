@@ -236,6 +236,24 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                settingsSection("System Files", icon: "internaldrive") {
+                    NavigationLink {
+                        SystemFilesView()
+                    } label: {
+                        Label("Manage System Files", systemImage: "folder")
+                    }
+                    
+                    NavigationLink {
+                        SystemFilesDownloaderView()
+                    } label: {
+                        Label("Download System Files", systemImage: "arrow.down.circle")
+                    }
+                    
+                    Text("Install Home Menu, shared fonts, and system archives from your 3DS")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 settingsSection("About", icon: "info.circle") {
                     HStack {
                         Text("Version")

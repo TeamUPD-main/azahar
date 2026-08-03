@@ -73,6 +73,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/NetPlayView.swift
     AzaharApp/Views/CheatsView.swift
     AzaharApp/Views/SystemFilesView.swift
+    AzaharApp/Views/SystemFilesDownloaderView.swift
     AzaharApp/Views/RetroAchievements/RetroAchievementsView.swift
     AzaharApp/Views/RetroAchievements/AchievementListView.swift
     AzaharApp/Views/RetroAchievements/LeaderboardListView.swift

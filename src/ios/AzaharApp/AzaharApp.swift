@@ -145,6 +145,17 @@ final class AppState: ObservableObject {
         currentGame = game
         isEmulating = true
     }
+    
+    func launchHomeMenu() {
+        // Create a special "game" entry for Home Menu
+        currentGame = Game(
+            path: "", // Empty path signals Home Menu boot
+            title: "Home Menu",
+            titleId: 0x0004003000008F02, // Home Menu title ID
+            mediaType: Int32(AZ_MEDIA_TYPE_NAND)
+        )
+        isEmulating = true
+    }
 
     func stopEmulation() {
         az_stop_emulation()

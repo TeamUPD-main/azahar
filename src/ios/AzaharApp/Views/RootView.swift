@@ -20,24 +20,9 @@ struct RootView: View {
                             Label("Settings", systemImage: "gear")
                         }
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            appState.showingDocumentPicker = true
-                        } label: {
-                            Label("Add Games", systemImage: "plus")
-                        }
-                    }
                 }
                 .sheet(isPresented: $appState.showingSettings) {
                     SettingsView()
-                }
-                .sheet(isPresented: $appState.showingDocumentPicker) {
-                    DocumentPicker(onComplete: { urls in
-                        for url in urls {
-                            appState.importROM(from: url)
-                        }
-                        appState.scanGames()
-                    })
                 }
                 .fullScreenCover(isPresented: $appState.isEmulating) {
                     if let game = appState.currentGame {

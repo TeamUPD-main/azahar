@@ -19,7 +19,9 @@ struct Game: Identifiable, Hashable {
 
 /// Scans the user directory for game files.
 enum GameScanner {
-    private static let supportedExtensions: Set<String> = ["3ds", "3dsx", "cxi", "app", "cia", "ncch"]
+    private static let supportedExtensions: Set<String> = [
+        "3ds", "3dsx", "cxi", "app", "cia", "ncch", "cci", "z3ds", "zcci", "zcxi"
+    ]
 
     static func scan(userDirectory: String) -> [Game] {
         var games: [Game] = []
@@ -37,44 +39,30 @@ enum GameScanner {
         )
         games.append(contentsOf: scanDirectory(nandTitles, mediaType: Int32(AZ_MEDIA_TYPE_NAND)))
 
-        // Scan user-configured directories (add more paths as needed)
+        // Scan ROMs directory (recursively) - where imported ROMs are stored
         let docsDir = NSSearchPathForDirectoriesInDomains(
             .documentDirectory, .userDomainMask, true
         ).first ?? ""
 
         let gamesPath = (docsDir as NSString).appendingPathComponent("ROMs")
-        if let files = try? FileManager.default.contentsOfDirectory(
-            atPath: gamesPath
-        ) {
-            for file in files where supportedExtensions.contains(
-                (file as NSString).pathExtension.lowercased()
-            ) {
-                let fullPath = (gamesPath as NSString).appendingPathComponent(file)
-                let titleId = az_get_title_id(fullPath)
-                games.append(Game(
-                    path: fullPath,
-                    title: (file as NSString).deletingPathExtension,
-                    titleId: UInt64(bitPattern: titleId),
-                    mediaType: Int32(AZ_MEDIA_TYPE_SDMC)
-                ))
-            }
-        }
+        games.append(contentsOf: scanDirectory(gamesPath, mediaType: Int32(AZ_MEDIA_TYPE_SDMC)))
 
-        return games
+        // Deduplicate by path
+        var seen = Set<String>()
+        return games.filter { seen.insert($0.path).inserted }
     }
 
     private static func scanDirectory(_ path: String, mediaType: Int32) -> [Game] {
         guard let enumerator = FileManager.default.enumerator(
-            atPath: path
+            atPath: path, includingPropertiesForKeys: [.isRegularFileKey]
         ) else { return [] }
         var games: [Game] = []
-        while let relative = enumerator.nextObject() as? String {
-            let ext = (relative as NSString).pathExtension.lowercased()
+        for case let url as URL in enumerator {
+            let ext = url.pathExtension.lowercased()
             guard supportedExtensions.contains(ext) else { continue }
-            let fullPath = (path as NSString).appendingPathComponent(relative)
+            let fullPath = url.path
             let titleId = az_get_title_id(fullPath)
-            guard titleId != 0 else { continue }
-            let name = (relative as NSString).lastPathComponent
+            let name = url.lastPathComponent
             games.append(Game(
                 path: fullPath,
                 title: (name as NSString).deletingPathExtension,

@@ -33,8 +33,22 @@ final class EmulationViewModel: ObservableObject {
         isRunning = true
         isPaused = false
 
+        // Resolve launch path. Empty path means boot to Home Menu.
+        let path: String
+        if game.path.isEmpty {
+            let region = Int(az_setting_get_int("System", "region_value", 0))
+            path = String(cString: az_get_home_menu_path(region))
+            if path.isEmpty {
+                isRunning = false
+                gameTitle = "Home Menu not installed"
+                return
+            }
+        } else {
+            path = game.path
+        }
+
         emulationThread = Task.detached(priority: .userInitiated) {
-            az_run(self.game.path)
+            az_run(path)
 
             await MainActor.run {
                 self.isRunning = false
