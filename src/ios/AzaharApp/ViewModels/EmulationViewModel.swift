@@ -36,7 +36,7 @@ final class EmulationViewModel: ObservableObject {
         // Resolve launch path. Empty path means boot to Home Menu.
         let path: String
         if game.path.isEmpty {
-            let region = Int(az_setting_get_int("System", "region_value", 0))
+            let region = Int32(az_setting_get_int("System", "region_value", 0))
             path = String(cString: az_get_home_menu_path(region))
             if path.isEmpty {
                 isRunning = false

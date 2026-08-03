@@ -53,19 +53,22 @@ enum GameScanner {
     }
 
     private static func scanDirectory(_ path: String, mediaType: Int32) -> [Game] {
+        let url = URL(fileURLWithPath: path)
         guard let enumerator = FileManager.default.enumerator(
-            atPath: path, includingPropertiesForKeys: [.isRegularFileKey]
+            at: URL(fileURLWithPath: path),
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
         ) else { return [] }
+
         var games: [Game] = []
-        for case let url as URL in enumerator {
-            let ext = url.pathExtension.lowercased()
+        for case let fileURL as URL in enumerator {
+            let ext = fileURL.pathExtension.lowercased()
             guard supportedExtensions.contains(ext) else { continue }
-            let fullPath = url.path
+            let fullPath = fileURL.path
             let titleId = az_get_title_id(fullPath)
-            let name = url.lastPathComponent
             games.append(Game(
                 path: fullPath,
-                title: (name as NSString).deletingPathExtension,
+                title: fileURL.deletingPathExtension().lastPathComponent,
                 titleId: UInt64(bitPattern: titleId),
                 mediaType: mediaType
             ))
