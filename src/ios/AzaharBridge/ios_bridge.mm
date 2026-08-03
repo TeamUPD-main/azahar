@@ -1267,3 +1267,29 @@ const char* az_get_version_string(void) {
     static thread_local std::string ver = Common::g_scm_rev;
     return ver.c_str();
 }
+
+// ---------------------------------------------------------------------------
+// JIT / System Info
+// ---------------------------------------------------------------------------
+
+#import <Foundation/Foundation.h>
+#include <unistd.h>
+
+int32_t get_current_pid(void) {
+    return getpid();
+}
+
+const char* get_current_bundle_id(void) {
+    static std::string bundle_id;
+    if (bundle_id.empty()) {
+        @autoreleasepool {
+            NSString* identifier = [[NSBundle mainBundle] bundleIdentifier];
+            if (identifier) {
+                bundle_id = [identifier UTF8String];
+            } else {
+                bundle_id = "org.azahar_emu.Azahar";
+            }
+        }
+    }
+    return bundle_id.c_str();
+}

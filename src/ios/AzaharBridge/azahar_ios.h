@@ -563,6 +563,16 @@ void az_free_string(char* str);
 /// Current git/build version strings.
 const char* az_get_version_string(void);
 
+// ---------------------------------------------------------------------------
+// JIT / System Info
+// ---------------------------------------------------------------------------
+
+/// Get current process ID
+int32_t get_current_pid(void);
+
+/// Get current bundle identifier (returns static string, no need to free)
+const char* get_current_bundle_id(void);
+
 #ifdef __cplusplus
 }
 #endif
