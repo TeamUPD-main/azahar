@@ -4,16 +4,14 @@
 
 import SwiftUI
 
+// MARK: - Helper Functions
+
 func safeString(from cString: UnsafePointer<Int8>?) -> String {
     guard let cString = cString else { return "Unknown" }
     return String(cString: cString)
 }
 
 /// Settings screen (equivalent to Android's SettingsActivity/SettingsFragment).
-func safeString(from cString: UnsafePointer<Int8>?) -> String {
-    guard let cString = cString else { return "Unknown" }
-    return String(cString: cString)
-}
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState

@@ -53,7 +53,6 @@ enum GameScanner {
     }
 
     private static func scanDirectory(_ path: String, mediaType: Int32) -> [Game] {
-        let url = URL(fileURLWithPath: path)
         guard let enumerator = FileManager.default.enumerator(
             at: URL(fileURLWithPath: path),
             includingPropertiesForKeys: [.isRegularFileKey],
