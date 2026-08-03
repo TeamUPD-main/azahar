@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "releaseDate": "2026-08-03",
+  "sections": [
+    {
+      "title": "New Features",
+      "items": [
+        "StikDebug JIT integration for optimal performance on iOS 17.4+",
+        "Auto-enable JIT on launch with user control",
+        "Real-time JIT status monitoring with visual indicators",
+        "TXM detection for iOS 26+ with A13/A14/M1+ chips",
+        "RetroAchievements support with full achievement and leaderboard tracking",
+        "iOS 26 crash prevention with signal handlers"
+      ]
+    },
+    {
+      "title": "Improvements",
+      "items": [
+        "Enhanced JIT settings UI with color-coded status indicators",
+        "Context-aware help messages based on JIT state",
+        "Improved app lifecycle handling for background JIT restoration",
+        "Dual-mapped memory testing for modern iOS JIT",
+        "Better error messaging for JIT enablement issues"
+      ]
+    },
+    {
+      "title": "Technical Changes",
+      "items": [
+        "Migrated to StikDebug-only JIT approach (removed built-in mode)",
+        "Added Metal framework for chip detection",
+        "Implemented 500ms JIT polling for reactive UI",
+        "Added Security framework for entitlement checking",
+        "Updated to stikjit:// URL scheme with iOS 26 script support"
+      ]
+    },
+    {
+      "title": "Bug Fixes",
+      "items": [
+        "Fixed unused variable warnings in NetPlayView",
+        "Fixed Swift compilation errors in JIT detection code",
+        "Resolved vm_deallocate return value warnings"
+      ]
+    }
+  ],
+  "compatibility": {
+    "minimumIOSVersion": "17.4",
+    "recommendedIOSVersion": "26.0",
+    "requiresStikDebug": true,
+    "requiresLocalDevVPN": true
+  },
+  "notes": [
+    "JIT is recommended for smooth gameplay in most 3DS games",
+    "Install StikDebug and LocalDevVPN from GitHub for JIT support",
+    "Auto-enable JIT is ON by default for best out-of-box experience"
+  ]
+}

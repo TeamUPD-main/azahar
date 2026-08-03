@@ -59,6 +59,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/AzaharApp.swift
     AzaharApp/AzaharBridge.swift
     AzaharApp/Models/Game.swift
+    AzaharApp/Models/WhatsNewEntry.swift
     AzaharApp/ViewModels/EmulationViewModel.swift
     AzaharApp/Views/RootView.swift
     AzaharApp/Views/GameListView.swift
@@ -77,6 +78,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/RetroAchievements/LeaderboardListView.swift
     AzaharApp/Views/RetroAchievements/RANotificationView.swift
     AzaharApp/Views/AboutView.swift
+    AzaharApp/Views/WhatsNewView.swift
     AzaharApp/Utilities/GamepadManager.swift
     AzaharApp/Utilities/UpdateChecker.swift
     AzaharApp/Utilities/SMDHLoader.swift
@@ -196,6 +198,15 @@ if(NOT CMAKE_GENERATOR STREQUAL "Xcode")
 endif()
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
+
+# Add WhatsNew.json as a bundle resource
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/WhatsNew.json"
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
+)
+target_sources(azahar_ios_app PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/WhatsNew.json"
+)
 
 # Embed MoltenVK in the app bundle
 if(EXISTS "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib")

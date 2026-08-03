@@ -10,6 +10,7 @@ struct AzaharApp: App {
     @StateObject private var jitContext = JITEnableContext.shared
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("autoEnableJIT") private var autoEnableJIT = true  // Default: enabled
+    @State private var showWhatsNew = false
 
     init() {
         // Install iOS 26 crash prevention handlers
@@ -24,6 +25,9 @@ struct AzaharApp: App {
                 .onAppear {
                     appState.initialize()
                     
+                    // Check if What's New should be shown
+                    showWhatsNew = WhatsNewManager.shared.shouldShowWhatsNew()
+                    
                     // Auto-enable JIT on first launch if configured
                     if autoEnableJIT && !jitContext.isJITEnabled {
                         jitContext.enableJITViaStikDebug()
@@ -31,6 +35,14 @@ struct AzaharApp: App {
                 }
                 .onChange(of: scenePhase) { oldPhase, newPhase in
                     handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+                }
+                .sheet(isPresented: $showWhatsNew) {
+                    if let entry = WhatsNewManager.shared.loadWhatsNew() {
+                        WhatsNewView(entry: entry) {
+                            WhatsNewManager.shared.markWhatsNewAsSeen()
+                            showWhatsNew = false
+                        }
+                    }
                 }
         }
     }
