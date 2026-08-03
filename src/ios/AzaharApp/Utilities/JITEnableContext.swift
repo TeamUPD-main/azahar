@@ -3,7 +3,10 @@
 // Refer to the license.txt file included.
 
 import Foundation
+import UIKit
 import Darwin
+import Security
+import Metal
 
 /// Chip series for TXM detection
 enum ChipSeries {
@@ -82,7 +85,7 @@ class JITEnableContext: ObservableObject {
             return false
         }
         
-        defer { vm_deallocate(mach_task_self_, addr, pageSize) }
+        defer { _ = vm_deallocate(mach_task_self_, addr, pageSize) }
         
         // Try to remap as RX (dual mapping test)
         var target: vm_address_t = 0
@@ -104,7 +107,7 @@ class JITEnableContext: ObservableObject {
         )
         
         if result == KERN_SUCCESS {
-            vm_deallocate(mach_task_self_, target, pageSize)
+            _ = vm_deallocate(mach_task_self_, target, pageSize)
             return true
         }
         

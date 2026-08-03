@@ -69,7 +69,7 @@ struct NetPlayView: View {
         .onAppear { loadRooms() }
         .alert("Join Room", isPresented: .constant(selectedRoom != nil)) {
             Button("Join") {
-                if let room = selectedRoom {
+                if selectedRoom != nil {
                     _ = az_netplay_join_room("0.0.0.0", 0, username, "")
                 }
                 selectedRoom = nil
@@ -81,7 +81,7 @@ struct NetPlayView: View {
     private func loadRooms() {
         isLoading = true
         az_netplay_init()
-        var entries = [RoomEntry]()
+        let entries = [RoomEntry]()
         // TODO: populate from az_netplay_get_public_rooms
         publicRooms = entries
         isLoading = false
