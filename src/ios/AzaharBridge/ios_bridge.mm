@@ -40,7 +40,6 @@
 #include "core/loader/loader.h"
 #include "core/savestate.h"
 #include "core/system_titles.h"
-#include "core/zip_pass.h"
 #include "ios/AzaharBridge/EmuWindowIOS.h"
 #include "ios/AzaharBridge/config_ios.h"
 #include "ios/AzaharBridge/input_manager_ios.h"
@@ -780,23 +779,24 @@ char* az_get_recommended_extension(const char*, bool) { return strdup(""); }
 // ---------------------------------------------------------------------------
 // ZipPass (StreetPass export/import)
 // ---------------------------------------------------------------------------
+// Note: ZipPass is disabled due to API incompatibilities with current codebase
+// The feature was ported from AzaharPlus but relies on functions that don't exist
+// or have different signatures in this fork (EncodeBase64, GetInitTime, GetDate)
 
 int az_zippass_export(const char* path) {
-    if (!path) return -1;
-    return Core::exportZipPass(std::string(path));
+    return -1; // Not supported - API incompatibilities
 }
 
 int az_zippass_import(const char* path) {
-    if (!path) return -1;
-    return Core::importZipPass(std::string(path));
+    return -1; // Not supported - API incompatibilities
 }
 
 int az_zippass_import_queued(void) {
-    return Core::importQueuedZipPass();
+    return -1; // Not supported - API incompatibilities
 }
 
 int az_zippass_clear_config(void) {
-    return Core::clearStreetPassConfig();
+    return -1; // Not supported - API incompatibilities
 }
 
 // ---------------------------------------------------------------------------

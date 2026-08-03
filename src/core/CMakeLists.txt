@@ -492,12 +492,19 @@ add_library(citra_core STATIC EXCLUDE_FROM_ALL
     savestate_data.h
     system_titles.cpp
     system_titles.h
-    zip_pass.cpp
-    zip_pass.h
     tracer/citrace.h
     tracer/recorder.cpp
     tracer/recorder.h
 )
+
+# ZipPass has API incompatibilities with this codebase (ported from AzaharPlus)
+# Disabled until APIs are updated
+# if (NOT DISABLE_ZIPPASS)
+#     target_sources(citra_core PRIVATE
+#         zip_pass.cpp
+#         zip_pass.h
+#     )
+# endif()
 
 if (ENABLE_BUILTIN_KEYBLOB)
     target_sources(citra_core PRIVATE hw/default_keys.h)
@@ -507,7 +514,7 @@ create_target_directory_groups(citra_core)
 
 target_link_libraries(citra_core PUBLIC citra_common PRIVATE audio_core network video_core)
 target_link_libraries(citra_core PRIVATE Boost::boost Boost::serialization Boost::iostreams httplib)
-target_link_libraries(citra_core PUBLIC dds-ktx PRIVATE cryptopp fmt lodepng open_source_archives zip)
+target_link_libraries(citra_core PUBLIC dds-ktx PRIVATE cryptopp fmt lodepng open_source_archives)
 
 if (ENABLE_RETRO_ACHIEVEMENTS)
     target_link_libraries(citra_core PUBLIC retro_achievements)
