@@ -83,6 +83,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Utilities/UpdateChecker.swift
     AzaharApp/Utilities/SMDHLoader.swift
     AzaharApp/Utilities/JITEnableContext.swift
+    AzaharApp/Utilities/EntitlementChecker.swift
 )
 
 # ---------------------------------------------------------------------------

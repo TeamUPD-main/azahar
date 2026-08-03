@@ -39,6 +39,17 @@ jobs:
           restore-keys: |
             ios-${{ matrix.variant }}-
 
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint version
+
+      - name: Run SwiftLint
+        run: |
+          cd src/ios
+          swiftlint lint --reporter github-actions-logging
+        continue-on-error: true  # Don't fail build on lint warnings initially
+
       - name: Configure CMake
         run: |
           cmake -S . -B build-ios -G Xcode \

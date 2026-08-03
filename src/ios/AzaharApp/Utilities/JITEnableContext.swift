@@ -114,16 +114,6 @@ class JITEnableContext: ObservableObject {
         return false
     }
     
-    /// Check app entitlement
-    private func checkAppEntitlement(_ entitlement: String) -> Bool {
-        let value = SecTaskCopyValueForEntitlement(
-            SecTaskCreateFromSelf(nil)!,
-            entitlement as CFString,
-            nil
-        )
-        return value != nil
-    }
-    
     // MARK: - JIT Polling
     
     /// Start polling for JIT status changes

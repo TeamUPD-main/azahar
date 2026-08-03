@@ -53,11 +53,6 @@ class WhatsNewManager {
     func shouldShowWhatsNew() -> Bool {
         guard let entry = loadWhatsNew() else { return false }
         
-        // Get current app version
-        guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
-            return false
-        }
-        
         // Get last seen version from UserDefaults
         let lastSeenVersion = UserDefaults.standard.string(forKey: "lastSeenWhatsNewVersion")
         

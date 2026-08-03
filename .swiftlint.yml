@@ -1,0 +1,124 @@
+# SwiftLint Configuration for Azahar
+# https://realm.github.io/SwiftLint/
+
+# Paths to exclude from linting
+excluded:
+  - externals/
+  - build/
+  - .build/
+  - dist/
+  - Pods/
+  - Carthage/
+  - DerivedData/
+  - .swiftpm/
+
+# Paths to include (only Swift iOS code)
+included:
+  - src/ios/AzaharApp/
+
+# Disable rules that are too strict for emulator development
+disabled_rules:
+  - line_length                    # Emulator code can have long lines
+  - file_length                    # iOS files can be large
+  - function_body_length           # Complex emulation logic needs long functions
+  - type_body_length               # Large view models are acceptable
+  - cyclomatic_complexity          # Emulation state machines are complex
+  - function_parameter_count       # C bridge functions may have many params
+  - identifier_name                # Allow short names like 'x', 'y', 'id'
+  - nesting                        # Deep nesting is sometimes necessary
+  - todo                           # Don't block builds on TODOs
+  - shorthand_operator             # Personal preference
+  - trailing_comma                 # Optional style choice
+
+# Enable opt-in rules for better code quality
+opt_in_rules:
+  - empty_count                    # Use .isEmpty instead of .count == 0
+  - unused_import                  # Remove unused imports
+  - unused_declaration             # Catch unused variables/functions
+  - explicit_init                  # Use .init() explicitly
+  - first_where                    # Use .first(where:) instead of .filter().first
+  - contains_over_first_not_nil    # Use .contains() instead of .first != nil
+  - empty_string                   # Use .isEmpty instead of == ""
+  - multiline_parameters           # Consistent parameter formatting
+  - sorted_first_last              # Use .first/.last instead of .sorted().first
+  - vertical_whitespace_closing_braces  # Clean up spacing
+  - vertical_whitespace_opening_braces  # Clean up spacing
+
+# Analyzer rules (require building with `--compile-commands`)
+analyzer_rules:
+  - unused_import
+  - unused_declaration
+
+# Rule configurations
+force_cast: warning                # Warn but don't fail on force casts
+force_try: warning                 # Warn but don't fail on force try
+empty_count: error                 # Always use .isEmpty
+trailing_whitespace:
+  ignores_empty_lines: false
+  ignores_comments: false
+
+# Custom line length (more lenient for emulator code)
+# line_length:
+#   warning: 150
+#   error: 200
+#   ignores_urls: true
+#   ignores_comments: true
+
+# Type name configuration
+type_name:
+  min_length: 2                    # Allow short type names like 'VM'
+  max_length: 50
+  allowed_symbols: []
+  validates_start_with_lowercase: error
+
+# Variable name configuration  
+variable_name:
+  min_length: 1                    # Allow single letter vars (x, y, i)
+  max_length: 40
+  excluded:
+    - id                           # Common short names
+    - x
+    - y
+    - z
+    - vm
+    - io
+
+# Warnings threshold (0 = fail build on any violation)
+# Start lenient, then tighten over time
+warning_threshold: 50              # Phase 1: Allow up to 50 warnings
+# warning_threshold: 0             # Phase 2: No warnings allowed (future)
+
+# Reporter type for CI/CD
+reporter: "github-actions-logging" # Use GitHub Actions format in CI
+# reporter: "xcode"                # Use Xcode format locally
+
+# Number of files to process in parallel
+# Auto-detected based on CPU cores
+# parallel: true
+
+# Custom rules (optional - examples)
+custom_rules:
+  # Enforce copyright header
+  copyright_header:
+    name: "Copyright Header"
+    message: "Files should start with the Azahar copyright header"
+    regex: '^(?!\/\/ Copyright Citra Emulator Project \/ Azahar Emulator Project)'
+    match_kinds:
+      - comment
+    severity: warning
+  
+  # No print statements in production code (use proper logging)
+  no_print:
+    name: "No Print Statements"
+    message: "Use proper logging instead of print()"
+    regex: '\bprint\('
+    match_kinds:
+      - identifier
+    severity: warning
+    excluded:
+      - ".*Debug.*"
+      - ".*Test.*"
+
+# SwiftLint versioning
+# Specify minimum version to ensure consistent results
+# swiftlint_version: 0.54.0
