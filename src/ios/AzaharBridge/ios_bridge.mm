@@ -271,7 +271,7 @@ static void RunCitra(const std::string& filepath) {
         }
     }
 
-    last_result.store(AZ_CORE_ERROR_NONE);
+    last_result.store(AZ_CORE_ERROR_SUCCESS);
 }
 
 static void TryShutdown() {
@@ -668,7 +668,7 @@ bool az_get_game_metadata(const char* path, az_game_metadata* out_metadata) {
     if (result != Loader::ResultStatus::Success || smdh_data.empty() || 
         smdh_data.size() < sizeof(Loader::SMDH)) {
         // No SMDH available, use filename
-        std::string filename = FileUtil::GetFilename(path);
+        std::string filename(FileUtil::GetFilename(path));
         strncpy(out_metadata->title, filename.c_str(), 255);
         out_metadata->title[255] = '\0';
         out_metadata->publisher[0] = '\0';
@@ -680,7 +680,7 @@ bool az_get_game_metadata(const char* path, az_game_metadata* out_metadata) {
 
     if (!smdh.IsValid()) {
         // Invalid SMDH, use filename
-        std::string filename = FileUtil::GetFilename(path);
+        std::string filename(FileUtil::GetFilename(path));
         strncpy(out_metadata->title, filename.c_str(), 255);
         out_metadata->title[255] = '\0';
         out_metadata->publisher[0] = '\0';
