@@ -94,8 +94,8 @@ enum GameScanner {
             let titleId: UInt64
             
             if hasMetadata {
-                title = String(cString: &metadata.title.0)
-                publisher = String(cString: &metadata.publisher.0)
+                title = String(cString: metadata.title)
+                publisher = String(cString: metadata.publisher)
                 playTime = metadata.play_time_seconds
                 titleId = metadata.title_id
             } else {

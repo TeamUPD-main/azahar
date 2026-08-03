@@ -245,7 +245,7 @@ struct SystemFilesDownloaderView: View {
                             try await Task.sleep(nanoseconds: 3_000_000_000)  // 3 seconds
                         } else {
                             // Failed after all retries
-                            throw SystemFilesError.downloadFailed(titleId, result)
+                            throw SystemFilesError.downloadFailed(titleId, Int(result))
                         }
                     }
                     
