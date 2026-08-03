@@ -33,7 +33,9 @@ class JITEnableContext: ObservableObject {
     }
     
     deinit {
-        disconnect()
+        if let adapter = adapter {
+            stop_tunnel(adapter)
+        }
     }
     
     // MARK: - Connection Management
@@ -132,7 +134,12 @@ class JITEnableContext: ObservableObject {
                 let sem = Unmanaged<DispatchSemaphore>.fromOpaque(semPtr).takeRetainedValue()
                 
                 DispatchQueue.main.async {
-                    jsCallback(pid, debugProxy, remoteServer, sem)
+                    jsCallback(
+                        pid,
+                        debugProxy.map { OpaquePointer($0) },
+                        remoteServer.map { OpaquePointer($0) },
+                        sem
+                    )
                 }
             }
         }
@@ -178,7 +185,12 @@ class JITEnableContext: ObservableObject {
                 let sem = Unmanaged<DispatchSemaphore>.fromOpaque(semPtr).takeRetainedValue()
                 
                 DispatchQueue.main.async {
-                    jsCallback(pid, debugProxy, remoteServer, sem)
+                    jsCallback(
+                        pid,
+                        debugProxy.map { OpaquePointer($0) },
+                        remoteServer.map { OpaquePointer($0) },
+                        sem
+                    )
                 }
             }
         }
