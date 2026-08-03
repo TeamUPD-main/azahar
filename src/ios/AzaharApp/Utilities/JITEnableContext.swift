@@ -4,170 +4,66 @@
 
 import Foundation
 
-/// Type alias for logging callbacks
-typealias LogFunc = (String) -> Void
-
-/// Type alias for debug callbacks (used when TXM is available for JS execution)
-typealias DebugAppCallback = (
-    _ pid: Int32,
-    _ debugProxy: OpaquePointer?,
-    _ remoteServer: OpaquePointer?,
-    _ semaphore: DispatchSemaphore
-) -> Void
-
-/// Singleton managing on-device JIT enablement via idevice FFI
+/// Singleton managing StikDebug integration for on-device JIT enablement
 @MainActor
 class JITEnableContext: ObservableObject {
     static let shared = JITEnableContext()
     
-    @Published var isConnected = false
-    @Published var isDDIMounted = false
     @Published var lastError: String?
-    
-    private var adapter: idevice_adapter_t?
-    private var handshake: idevice_handshake_t?
     
     private init() {
         // Check if we have TXM support
         detectTXMCapability()
     }
     
-    deinit {
-        if let adapter = adapter {
-            stop_tunnel(adapter)
-        }
-    }
+    // MARK: - StikDebug Integration
     
-    // MARK: - Connection Management
-    
-    /// Start the loopback tunnel to device services
-    /// - Parameter pairingFilePath: Path to .mobiledevicepairing file
-    func startTunnel(pairingFilePath: String) throws {
-        guard !isConnected else { return }
-        
-        var newAdapter: idevice_adapter_t?
-        var newHandshake: idevice_handshake_t?
-        
-        let result = start_tunnel(pairingFilePath, &newAdapter, &newHandshake)
-        
-        guard result == IDEVICE_SUCCESS else {
-            throw JITError.connectionFailed("Failed to start tunnel: \(result.rawValue)")
-        }
-        
-        self.adapter = newAdapter
-        self.handshake = newHandshake
-        self.isConnected = true
-        
-        print("[JITEnableContext] Tunnel started successfully")
-    }
-    
-    /// Stop the tunnel connection
-    func disconnect() {
-        if let adapter = adapter {
-            stop_tunnel(adapter)
-            self.adapter = nil
-            self.handshake = nil
-            self.isConnected = false
-            print("[JITEnableContext] Tunnel stopped")
-        }
-    }
-    
-    // MARK: - DDI Management
-    
-    /// Mount the Developer Disk Image (required for debugging on iOS 17+)
-    func mountDDI(imagePath: String, signaturePath: String, trustcachePath: String, logger: LogFunc? = nil) throws {
-        guard let adapter = adapter, let handshake = handshake else {
-            throw JITError.notConnected
-        }
-        
-        // Check if already mounted
-        if is_developer_image_mounted(adapter, handshake) {
-            isDDIMounted = true
-            logger?("[JIT] DDI already mounted")
-            return
-        }
-        
-        // Note: Logging callback removed due to Swift->C closure limitations
-        // This is acceptable for stub implementation
-        let result = mount_developer_image(adapter, handshake, imagePath, signaturePath, trustcachePath, nil)
-        
-        guard result == IDEVICE_SUCCESS else {
-            throw JITError.mountFailed("Failed to mount DDI: \(result.rawValue)")
-        }
-        
-        isDDIMounted = true
-        logger?("[JIT] DDI mounted successfully")
-    }
-    
-    // MARK: - JIT Enablement
-    
-    /// Enable JIT for a specific app by bundle ID
-    func debugApp(withBundleID bundleID: String, logger: LogFunc? = nil, jsCallback: DebugAppCallback? = nil) throws {
-        guard let adapter = adapter, let handshake = handshake else {
-            throw JITError.notConnected
-        }
-        
-        // Note: Callbacks removed due to Swift->C closure capture limitations
-        // This is acceptable for stub implementation; real idevice library integration
-        // would need a different callback mechanism (e.g., global function pointers)
-        let result = debug_app(adapter, handshake, bundleID, nil, nil)
-        
-        guard result == IDEVICE_SUCCESS else {
-            throw JITError.debugFailed("Failed to debug app '\(bundleID)': \(result.rawValue)")
-        }
-        
-        logger?("[JIT] Successfully enabled JIT for \(bundleID)")
-    }
-    
-    /// Enable JIT for a specific process by PID
-    func debugApp(withPID pid: Int32, logger: LogFunc? = nil, jsCallback: DebugAppCallback? = nil) throws {
-        guard let adapter = adapter, let handshake = handshake else {
-            throw JITError.notConnected
-        }
-        
-        // Note: Callbacks removed due to Swift->C closure capture limitations
-        let result = debug_app_pid(adapter, handshake, pid, nil, nil)
-        
-        guard result == IDEVICE_SUCCESS else {
-            throw JITError.debugFailed("Failed to debug PID \(pid): \(result.rawValue)")
-        }
-        
-        logger?("[JIT] Successfully enabled JIT for PID \(pid)")
-    }
-    
-    /// Launch an app without debugging
-    func launchApp(_ bundleID: String, logger: LogFunc? = nil) throws {
-        guard let adapter = adapter, let handshake = handshake else {
-            throw JITError.notConnected
-        }
-        
-        let logCallback: idevice_log_func? = logger != nil ? { messagePtr in
-            guard let messagePtr = messagePtr else { return }
-            let message = String(cString: messagePtr)
-            DispatchQueue.main.async {
-                logger?(message)
-            }
-        } : nil
-        
-        let result = launch_app_via_proxy(adapter, handshake, bundleID, logCallback)
-        
-        guard result == IDEVICE_SUCCESS else {
-            throw JITError.launchFailed("Failed to launch '\(bundleID)': \(result.rawValue)")
-        }
-        
-        logger?("[JIT] Launched \(bundleID)")
-    }
-    
-    // MARK: - Self-JIT Enablement
-    
-    /// Enable JIT for the current Azahar process
-    func enableJITForSelf(logger: LogFunc? = nil) throws {
-        let pid = get_current_pid()
+    /// Trigger StikDebug to enable JIT for Azahar
+    func enableJITViaStikDebug() {
         let bundleID = String(cString: get_current_bundle_id())
         
-        logger?("[JIT] Enabling JIT for Azahar (PID: \(pid), Bundle: \(bundleID))")
-        
-        try debugApp(withPID: pid, logger: logger, jsCallback: nil)
+        if let url = URL(string: "stikdebug://enable-jit?bundle-id=\(bundleID)") {
+            UIApplication.shared.open(url) { success in
+                if success {
+                    print("[JIT] Triggered StikDebug for JIT enablement")
+                } else {
+                    print("[JIT] StikDebug not available - please install it")
+                    Task { @MainActor in
+                        self.lastError = "StikDebug not installed. Please install StikDebug from GitHub."
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Open StikDebug app
+    func openStikDebug() {
+        enableJITViaStikDebug()
+    }
+    
+    /// Open StikDebug GitHub releases page
+    func openStikDebugDownload() {
+        if let url = URL(string: "https://github.com/BomberFish/StikDebug/releases") {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    // MARK: - System Information
+    
+    /// Get current process ID
+    func getCurrentPID() -> Int32 {
+        return get_current_pid()
+    }
+    
+    /// Get current bundle identifier
+    func getCurrentBundleID() -> String {
+        return String(cString: get_current_bundle_id())
+    }
+    
+    /// Get iOS version string
+    func getIOSVersion() -> String {
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
     
     // MARK: - TXM Detection
@@ -213,31 +109,15 @@ class JITEnableContext: ObservableObject {
             }
         }
         
-        print("[JIT] TXM not detected - advanced JIT features unavailable")
+        print("[JIT] TXM not detected - advanced JIT features may be limited")
     }
 }
 
-// MARK: - Error Types
+// MARK: - C Bridge Functions
 
-enum JITError: LocalizedError {
-    case notConnected
-    case connectionFailed(String)
-    case mountFailed(String)
-    case debugFailed(String)
-    case launchFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .notConnected:
-            return "Not connected to device services"
-        case .connectionFailed(let msg):
-            return "Connection failed: \(msg)"
-        case .mountFailed(let msg):
-            return "DDI mount failed: \(msg)"
-        case .debugFailed(let msg):
-            return "Debug attach failed: \(msg)"
-        case .launchFailed(let msg):
-            return "App launch failed: \(msg)"
-        }
-    }
-}
+// These are declared in azahar_ios.h and implemented in the C++ bridge
+@_silgen_name("get_current_pid")
+func get_current_pid() -> Int32
+
+@_silgen_name("get_current_bundle_id")
+func get_current_bundle_id() -> UnsafePointer<CChar>

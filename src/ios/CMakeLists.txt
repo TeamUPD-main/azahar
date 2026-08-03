@@ -34,8 +34,6 @@ add_library(azahar_ios STATIC
     AzaharBridge/camera_ios.mm
     AzaharBridge/applets_ios.h
     AzaharBridge/applets_ios.mm
-    AzaharBridge/idevice.h
-    AzaharBridge/idevice.c
 )
 
 target_include_directories(azahar_ios PUBLIC
@@ -83,7 +81,6 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Utilities/UpdateChecker.swift
     AzaharApp/Utilities/SMDHLoader.swift
     AzaharApp/Utilities/JITEnableContext.swift
-    AzaharApp/Utilities/DDIManager.swift
 )
 
 # ---------------------------------------------------------------------------
