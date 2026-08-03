@@ -9,7 +9,8 @@ struct AzaharApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var jitContext = JITEnableContext.shared
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("autoEnableJIT") private var autoEnableJIT = true  // Default: enabled
+    @AppStorage("autoEnableJIT") private var autoEnableJIT = false  // Default: disabled
+    @AppStorage("hasLaunchedStikDebugThisSession") private var hasLaunchedStikDebug = false
     @State private var showWhatsNew = false
 
     init() {
@@ -28,8 +29,9 @@ struct AzaharApp: App {
                     // Check if What's New should be shown
                     showWhatsNew = WhatsNewManager.shared.shouldShowWhatsNew()
                     
-                    // Auto-enable JIT on first launch if configured
-                    if autoEnableJIT && !jitContext.isJITEnabled {
+                    // Auto-enable JIT on first launch if configured and not already launched
+                    if autoEnableJIT && !jitContext.isJITEnabled && !hasLaunchedStikDebug {
+                        hasLaunchedStikDebug = true
                         jitContext.enableJITViaStikDebug()
                     }
                 }
@@ -53,9 +55,11 @@ struct AzaharApp: App {
             // App became active (foreground)
             print("[Lifecycle] App active")
             
-            // Re-enable JIT if configured and coming from background
-            if autoEnableJIT && oldPhase == .background && !jitContext.isJITEnabled {
-                jitContext.enableJITViaStikDebug()
+            // If StikDebug closed us and we're coming back, reset the flag
+            // so user can manually try again if needed
+            if oldPhase == .background && jitContext.isJITEnabled {
+                // JIT is now enabled, reset for next session
+                hasLaunchedStikDebug = false
             }
             
         case .inactive:

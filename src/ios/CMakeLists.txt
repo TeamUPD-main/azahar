@@ -63,7 +63,11 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/ViewModels/EmulationViewModel.swift
     AzaharApp/Views/RootView.swift
     AzaharApp/Views/GameListView.swift
+    AzaharApp/Views/GameGridView.swift
+    AzaharApp/Views/GamePropertiesView.swift
+    AzaharApp/Views/PerGameSettingsView.swift
     AzaharApp/Views/EmulationView.swift
+    AzaharApp/Views/EmulationLoadingView.swift
     AzaharApp/Views/MetalView.swift
     AzaharApp/Views/TouchControlsView.swift
     AzaharApp/Views/Settings/SettingsView.swift
@@ -85,6 +89,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Utilities/SMDHLoader.swift
     AzaharApp/Utilities/JITEnableContext.swift
     AzaharApp/Utilities/EntitlementChecker.swift
+    AzaharApp/Utilities/ExternalDisplayManager.swift
 )
 
 # ---------------------------------------------------------------------------

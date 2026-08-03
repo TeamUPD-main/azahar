@@ -282,6 +282,24 @@ void az_disable_temporary_frame_limit(void);
 // ---------------------------------------------------------------------------
 
 int64_t az_get_title_id(const char* path);
+
+/// Extracts the game icon from a ROM file.
+/// Returns the number of pixels (48*48=2304) or 0 if extraction fails.
+/// The icon data is RGB565 format (16-bit per pixel).
+/// The caller must provide a buffer of at least 2304 uint16_t elements.
+int az_get_game_icon(const char* path, uint16_t* out_icon_data, int buffer_size);
+
+/// Extended game metadata structure
+typedef struct {
+    char title[256];
+    char publisher[256];
+    int64_t play_time_seconds;
+    uint64_t title_id;
+} az_game_metadata;
+
+/// Extracts extended game metadata (title, publisher, playtime)
+/// Returns true if successful, false otherwise
+bool az_get_game_metadata(const char* path, az_game_metadata* out_metadata);
 bool az_get_is_system_title(const char* path);
 bool az_are_keys_available(void);
 

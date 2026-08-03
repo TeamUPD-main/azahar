@@ -7,7 +7,7 @@ import SwiftUI
 struct JITSettingsView: View {
     @StateObject private var jitContext = JITEnableContext.shared
     
-    @AppStorage("autoEnableJIT") private var autoEnableJIT = true  // Default: enabled
+    @AppStorage("autoEnableJIT") private var autoEnableJIT = false  // Default: disabled
     
     @State private var showError = false
     @State private var errorMessage = ""
@@ -142,7 +142,7 @@ struct JITSettingsView: View {
                 Text("Automation")
             } footer: {
                 if autoEnableJIT {
-                    Text("Azahar will automatically open StikDebug to enable JIT when the app launches or returns from background. Recommended for best performance.")
+                    Text("Azahar will automatically open StikDebug once when the app launches. StikDebug will close and reopen Azahar with JIT enabled. This only happens once per app launch.")
                 } else {
                     Text("Auto-enable is OFF. Azahar will run in software interpreter mode (slow). Enable this toggle for optimal performance, or manually enable JIT using the button above when needed.")
                 }

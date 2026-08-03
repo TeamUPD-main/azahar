@@ -18,6 +18,7 @@ final class EmulationViewModel: ObservableObject {
     @Published var leftStickPosition: CGPoint = .zero
     @Published var rightStickPosition: CGPoint = .zero
     @Published var isControlsVisible = true
+    @Published var isLoading = false
 
     private let game: Game
     private var emulationThread: Task<Void, Never>?
@@ -30,6 +31,7 @@ final class EmulationViewModel: ObservableObject {
 
     func startEmulation() {
         guard !isRunning else { return }
+        isLoading = true
         isRunning = true
         isPaused = false
 
@@ -40,6 +42,7 @@ final class EmulationViewModel: ObservableObject {
             path = String(cString: az_get_home_menu_path(region))
             if path.isEmpty {
                 isRunning = false
+                isLoading = false
                 gameTitle = "Home Menu not installed"
                 return
             }
@@ -53,6 +56,12 @@ final class EmulationViewModel: ObservableObject {
             // For now, poll briefly.
             while !az_is_surface_set() {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
+
+            // Hide loading screen after a brief delay (allows icon to display)
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+            await MainActor.run {
+                self.isLoading = false
             }
 
             az_run(path)
@@ -77,6 +86,7 @@ final class EmulationViewModel: ObservableObject {
         perfTimer?.invalidate()
         perfTimer = nil
         isRunning = false
+        isLoading = false
     }
 
     func togglePause() {

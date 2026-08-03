@@ -13,6 +13,21 @@ struct GameListView: View {
     @State private var isInstallingCIA = false
     @State private var installMessage = ""
     @State private var showInstallResult = false
+    @State private var viewMode: ViewMode = .list
+    @State private var selectedGameForProperties: Game?
+    @State private var showingProperties = false
+    
+    enum ViewMode: String, CaseIterable {
+        case list = "List"
+        case grid = "Grid"
+        
+        var icon: String {
+            switch self {
+            case .list: return "list.bullet"
+            case .grid: return "square.grid.2x2"
+            }
+        }
+    }
 
     var filteredGames: [Game] {
         if searchText.isEmpty { return appState.games }
@@ -22,98 +37,137 @@ struct GameListView: View {
     }
 
     var body: some View {
-        List {
-            // Home Menu boot option
-            Section {
-                Button {
-                    appState.launchHomeMenu()
-                } label: {
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.blue.gradient)
-                            .frame(width: 48, height: 48)
-                            .overlay {
-                                Image(systemName: "house.fill")
-                                    .foregroundStyle(.white)
-                            }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Home Menu")
-                                .font(.headline)
-                            Text("Boot 3DS System Menu")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.plain)
-            } header: {
-                Text("System")
-            }
-            
-            // Games list
-            Section {
-                ForEach(filteredGames) { game in
-                    Button {
+        Group {
+            if viewMode == .grid {
+                // Grid view
+                GameGridView(
+                    games: filteredGames,
+                    onSelectGame: { game in
                         appState.launchGame(game)
-                    } label: {
-                        GameRowView(game: game)
+                    },
+                    onShowProperties: { game in
+                        selectedGameForProperties = game
+                        showingProperties = true
                     }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button("Properties") {
-                            // TODO: show game properties
+                )
+            } else {
+                // List view
+                List {
+                    // Home Menu boot option
+                    Section {
+                        Button {
+                            appState.launchHomeMenu()
+                        } label: {
+                            HStack(spacing: 12) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.blue.gradient)
+                                    .frame(width: 48, height: 48)
+                                    .overlay {
+                                        Image(systemName: "house.fill")
+                                            .foregroundStyle(.white)
+                                    }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Home Menu")
+                                        .font(.headline)
+                                    Text("Boot 3DS System Menu")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    } header: {
+                        Text("System")
+                    }
+                    
+                    // Games list
+                    Section {
+                        ForEach(filteredGames) { game in
+                            Button {
+                                appState.launchGame(game)
+                            } label: {
+                                GameRowView(game: game)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    selectedGameForProperties = game
+                                    showingProperties = true
+                                } label: {
+                                    Label("Properties", systemImage: "info.circle")
+                                }
+                                
+                                Button {
+                                    appState.launchGame(game)
+                                } label: {
+                                    Label("Play", systemImage: "play.fill")
+                                }
+                            }
+                        }
+                    } header: {
+                        if !appState.games.isEmpty {
+                            Text("Games")
                         }
                     }
                 }
-            } header: {
-                if !appState.games.isEmpty {
-                    Text("Games")
+                .overlay {
+                    if appState.games.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "gamecontroller")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.secondary)
+                            
+                            Text("No games found")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                            
+                            VStack(spacing: 8) {
+                                Text("To add games:")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Text("1. Tap the + button above")
+                                    .font(.caption)
+                                Text("2. Select ROM files (.3ds, .cci, .cia, .cxi)")
+                                    .font(.caption)
+                                Text("3. Files will be imported to Documents/ROMs")
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                    }
                 }
             }
         }
         .navigationTitle("Games")
         .searchable(text: $searchText, prompt: "Search games...")
-        .overlay {
-            if appState.games.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "gamecontroller")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    
-                    Text("No games found")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    
-                    VStack(spacing: 8) {
-                        Text("To add games:")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        Text("1. Tap the + button above")
-                            .font(.caption)
-                        Text("2. Select ROM files (.3ds, .cci, .cia, .cxi)")
-                            .font(.caption)
-                        Text("3. Files will be imported to Documents/ROMs")
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                }
-                .padding()
-            }
-        }
         .refreshable {
             appState.scanGames()
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    Picker("View Mode", selection: $viewMode) {
+                        ForEach(ViewMode.allCases, id: \.self) { mode in
+                            Label(mode.rawValue, systemImage: mode.icon)
+                                .tag(mode)
+                        }
+                    }
+                } label: {
+                    Image(systemName: viewMode.icon)
+                }
+            }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
@@ -169,6 +223,11 @@ struct GameListView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingProperties) {
+            if let game = selectedGameForProperties {
+                GamePropertiesView(game: game)
+            }
+        }
     }
 
     private func handleCIAImport(_ result: Result<[URL], Error>) {
@@ -208,22 +267,44 @@ struct GameRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Game icon placeholder
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 48, height: 48)
-                .overlay {
-                    Image(systemName: "gamecontroller.fill")
-                        .foregroundStyle(.secondary)
-                }
+            // Game icon with actual image or placeholder
+            if let iconData = game.iconImage, let uiImage = UIImage(data: iconData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .interpolation(.none)
+                    .frame(width: 48, height: 48)
+                    .cornerRadius(8)
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        Image(systemName: "gamecontroller.fill")
+                            .foregroundStyle(.secondary)
+                    }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(game.title)
                     .font(.headline)
                     .lineLimit(1)
-                Text(game.formattedTitleId)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                
+                HStack(spacing: 8) {
+                    if !game.publisher.isEmpty {
+                        Text(game.publisher)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if game.playTimeSeconds > 0 {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text(game.formattedPlayTime)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             Spacer()
             Image(systemName: "chevron.right")

@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 import Foundation
+import UIKit
 
 /// Represents a game discovered in the user directory.
 struct Game: Identifiable, Hashable {
@@ -11,9 +12,27 @@ struct Game: Identifiable, Hashable {
     let title: String
     let titleId: UInt64
     let mediaType: Int32
+    var publisher: String = ""
+    var playTimeSeconds: Int64 = 0
+    var iconImage: Data? = nil
 
     var formattedTitleId: String {
         String(format: "%016llX", titleId)
+    }
+    
+    var formattedPlayTime: String {
+        guard playTimeSeconds > 0 else { return "Not played" }
+        
+        let hours = playTimeSeconds / 3600
+        let minutes = (playTimeSeconds % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "<1m"
+        }
     }
 }
 
@@ -64,14 +83,102 @@ enum GameScanner {
             let ext = fileURL.pathExtension.lowercased()
             guard supportedExtensions.contains(ext) else { continue }
             let fullPath = fileURL.path
-            let titleId = az_get_title_id(fullPath)
+            
+            // Extract metadata via bridge
+            var metadata = az_game_metadata()
+            let hasMetadata = az_get_game_metadata(fullPath, &metadata)
+            
+            let title: String
+            let publisher: String
+            let playTime: Int64
+            let titleId: UInt64
+            
+            if hasMetadata {
+                title = String(cString: &metadata.title.0)
+                publisher = String(cString: &metadata.publisher.0)
+                playTime = metadata.play_time_seconds
+                titleId = metadata.title_id
+            } else {
+                title = fileURL.deletingPathExtension().lastPathComponent
+                publisher = ""
+                playTime = 0
+                let tid = az_get_title_id(fullPath)
+                titleId = UInt64(bitPattern: tid)
+            }
+            
+            // Extract icon
+            let iconSize = 48 * 48
+            var iconData = [UInt16](repeating: 0, count: iconSize)
+            let pixelCount = az_get_game_icon(fullPath, &iconData, Int32(iconSize))
+            
+            var iconImageData: Data? = nil
+            if pixelCount == iconSize {
+                // Convert RGB565 to PNG data
+                iconImageData = createPNGFromRGB565(iconData, width: 48, height: 48)
+            }
+            
             games.append(Game(
                 path: fullPath,
-                title: fileURL.deletingPathExtension().lastPathComponent,
-                titleId: UInt64(bitPattern: titleId),
-                mediaType: mediaType
+                title: title,
+                titleId: titleId,
+                mediaType: mediaType,
+                publisher: publisher,
+                playTimeSeconds: playTime,
+                iconImage: iconImageData
             ))
         }
         return games
+    }
+    
+    /// Converts RGB565 pixel data to PNG Data
+    private static func createPNGFromRGB565(_ pixels: [UInt16], width: Int, height: Int) -> Data? {
+        // Create RGBA8888 buffer
+        var rgbaPixels = [UInt8](repeating: 0, count: width * height * 4)
+        
+        for i in 0..<pixels.count {
+            let rgb565 = pixels[i]
+            
+            // Extract RGB components from RGB565
+            let r5 = UInt8((rgb565 >> 11) & 0x1F)
+            let g6 = UInt8((rgb565 >> 5) & 0x3F)
+            let b5 = UInt8(rgb565 & 0x1F)
+            
+            // Convert to 8-bit (scale up)
+            let r8 = (r5 << 3) | (r5 >> 2)
+            let g8 = (g6 << 2) | (g6 >> 4)
+            let b8 = (b5 << 3) | (b5 >> 2)
+            
+            // Write RGBA pixel
+            let offset = i * 4
+            rgbaPixels[offset + 0] = r8
+            rgbaPixels[offset + 1] = g8
+            rgbaPixels[offset + 2] = b8
+            rgbaPixels[offset + 3] = 255 // Alpha
+        }
+        
+        // Create CGImage
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+        
+        guard let dataProvider = CGDataProvider(data: Data(rgbaPixels) as CFData),
+              let cgImage = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: width * 4,
+                space: colorSpace,
+                bitmapInfo: bitmapInfo,
+                provider: dataProvider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+              ) else {
+            return nil
+        }
+        
+        // Convert to PNG data
+        let uiImage = UIImage(cgImage: cgImage)
+        return uiImage.pngData()
     }
 }

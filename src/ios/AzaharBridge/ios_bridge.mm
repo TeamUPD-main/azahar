@@ -38,6 +38,7 @@
 #include "core/hw/aes/key.h"
 #include "core/hw/unique_data.h"
 #include "core/loader/loader.h"
+#include "core/loader/smdh.h"
 #include "core/savestate.h"
 #include "core/system_titles.h"
 #include "ios/AzaharBridge/EmuWindowIOS.h"
@@ -600,6 +601,107 @@ int64_t az_get_title_id(const char* path) {
     return static_cast<int64_t>(title_id);
 }
 
+int az_get_game_icon(const char* path, uint16_t* out_icon_data, int buffer_size) {
+    if (!path || !out_icon_data || buffer_size < 48 * 48) {
+        return 0;
+    }
+
+    auto loader = Loader::GetLoader(path);
+    if (!loader) {
+        return 0;
+    }
+
+    std::vector<u8> smdh_data;
+    auto result = loader->ReadIcon(smdh_data);
+    if (result != Loader::ResultStatus::Success || smdh_data.empty()) {
+        return 0;
+    }
+
+    // Validate SMDH structure
+    if (smdh_data.size() < sizeof(Loader::SMDH)) {
+        return 0;
+    }
+
+    Loader::SMDH smdh;
+    std::memcpy(&smdh, smdh_data.data(), sizeof(Loader::SMDH));
+
+    if (!smdh.IsValid()) {
+        return 0;
+    }
+
+    // Extract large icon (48x48) as RGB565
+    std::vector<u16> icon = smdh.GetIcon(true);
+    if (icon.size() != 48 * 48) {
+        return 0;
+    }
+
+    // Copy to output buffer
+    std::memcpy(out_icon_data, icon.data(), icon.size() * sizeof(u16));
+    return static_cast<int>(icon.size());
+}
+
+bool az_get_game_metadata(const char* path, az_game_metadata* out_metadata) {
+    if (!path || !out_metadata) {
+        return false;
+    }
+
+    auto loader = Loader::GetLoader(path);
+    if (!loader) {
+        return false;
+    }
+
+    // Get title ID
+    u64 title_id = 0;
+    loader->ReadProgramId(title_id);
+    out_metadata->title_id = static_cast<uint64_t>(title_id);
+
+    // Get playtime
+    if (play_time_manager) {
+        out_metadata->play_time_seconds = static_cast<int64_t>(play_time_manager->GetPlayTime(title_id));
+    } else {
+        out_metadata->play_time_seconds = 0;
+    }
+
+    // Get SMDH data for title and publisher
+    std::vector<u8> smdh_data;
+    auto result = loader->ReadIcon(smdh_data);
+    if (result != Loader::ResultStatus::Success || smdh_data.empty() || 
+        smdh_data.size() < sizeof(Loader::SMDH)) {
+        // No SMDH available, use filename
+        std::string filename = FileUtil::GetFilename(path);
+        strncpy(out_metadata->title, filename.c_str(), 255);
+        out_metadata->title[255] = '\0';
+        out_metadata->publisher[0] = '\0';
+        return true;
+    }
+
+    Loader::SMDH smdh;
+    std::memcpy(&smdh, smdh_data.data(), sizeof(Loader::SMDH));
+
+    if (!smdh.IsValid()) {
+        // Invalid SMDH, use filename
+        std::string filename = FileUtil::GetFilename(path);
+        strncpy(out_metadata->title, filename.c_str(), 255);
+        out_metadata->title[255] = '\0';
+        out_metadata->publisher[0] = '\0';
+        return true;
+    }
+
+    // Get title in English (or first available)
+    auto short_title = smdh.GetShortTitle(Loader::SMDH::TitleLanguage::English);
+    std::string title_str = Common::UTF16ToUTF8(short_title.data());
+    strncpy(out_metadata->title, title_str.c_str(), 255);
+    out_metadata->title[255] = '\0';
+
+    // Get publisher
+    auto publisher = smdh.titles[static_cast<int>(Loader::SMDH::TitleLanguage::English)].publisher;
+    std::string publisher_str = Common::UTF16ToUTF8(publisher.data());
+    strncpy(out_metadata->publisher, publisher_str.c_str(), 255);
+    out_metadata->publisher[255] = '\0';
+
+    return true;
+}
+
 bool az_get_is_system_title(const char* path) {
     if (!path) return false;
     int64_t id = az_get_title_id(path);
@@ -868,8 +970,23 @@ int az_install_cia(const char* path) {
 }
 
 bool az_system_files_available(void) {
-    return HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure1) &&
-           HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure2);
+    // Check if AES keys are available
+    bool keys_available = HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure1) &&
+                          HW::AES::IsKeyXAvailable(HW::AES::KeySlotID::NCCHSecure2);
+    
+    if (!keys_available) {
+        return false;
+    }
+    
+    // Check if at least one region's Home Menu is installed
+    for (u32 region = 0; region < Core::NUM_SYSTEM_TITLE_REGIONS; region++) {
+        const std::string home_menu_path = Core::GetHomeMenuNcchPath(region);
+        if (FileUtil::Exists(home_menu_path)) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 bool az_system_files_region_available(int region) {
