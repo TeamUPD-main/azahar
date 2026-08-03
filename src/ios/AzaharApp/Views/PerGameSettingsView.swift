@@ -304,7 +304,7 @@ struct CheatManagementView: View {
         cheats = (0..<count).map { i in
             let entry = cheatEntries[i]
             return CheatEntry(
-                id: entry.id,
+                id: entry.cheat_id,
                 name: String(cString: entry.name),
                 enabled: entry.enabled
             )
