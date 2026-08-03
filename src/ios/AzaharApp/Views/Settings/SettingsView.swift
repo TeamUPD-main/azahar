@@ -195,6 +195,18 @@ struct SettingsView: View {
                         Label("Account & Login", systemImage: "person.circle")
                     }
                     
+                    NavigationLink {
+                        AchievementListView()
+                    } label: {
+                        Label("Achievements", systemImage: "trophy")
+                    }
+                    
+                    NavigationLink {
+                        LeaderboardListView()
+                    } label: {
+                        Label("Leaderboards", systemImage: "chart.bar")
+                    }
+                    
                     Toggle(isOn: Binding(
                         get: { az_ra_is_hardcore_enabled() },
                         set: { az_ra_set_hardcore_enabled($0) }

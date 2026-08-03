@@ -522,7 +522,18 @@ static const char* ios_config_default_file_content = (BOOST_HANA_STRING(R"(
 # URL for Web API
 )") DECLARE_KEY(web_api_url) BOOST_HANA_STRING(R"(
 # Token for Web Service
-)") DECLARE_KEY(network_token) BOOST_HANA_STRING("\n")
+)") DECLARE_KEY(network_token) BOOST_HANA_STRING(R"(
+
+[RetroAchievements]
+# Enable RetroAchievements support
+# 0 (default): Off, 1: On
+)") DECLARE_KEY(retro_achievements_enabled) BOOST_HANA_STRING(R"(
+
+# RetroAchievements username
+)") DECLARE_KEY(retro_achievements_username) BOOST_HANA_STRING(R"(
+
+# RetroAchievements API token
+)") DECLARE_KEY(retro_achievements_token) BOOST_HANA_STRING("\n")
 
 ).c_str();
 
