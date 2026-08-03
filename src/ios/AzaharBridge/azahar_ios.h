@@ -455,7 +455,26 @@ typedef struct {
     const char* badge_url;
     unsigned int points;
     bool unlocked;
+    bool hardcore;
+    const char* progress_indicator;
+    float progress_percent;
 } az_ra_achievement_t;
+
+/// Leaderboard info structure
+typedef struct {
+    unsigned int id;
+    const char* title;
+    const char* description;
+    unsigned int num_entries;
+} az_ra_leaderboard_t;
+
+/// Leaderboard entry structure
+typedef struct {
+    unsigned int rank;
+    const char* username;
+    const char* score;
+    int64_t timestamp;
+} az_ra_leaderboard_entry_t;
 
 /// Game info structure
 typedef struct {
@@ -464,12 +483,28 @@ typedef struct {
     const char* badge_url;
     unsigned int num_achievements;
     unsigned int num_unlocked;
+    unsigned int num_leaderboards;
 } az_ra_game_t;
 
-/// Event callback for achievements
-typedef void (*az_ra_event_callback)(int event_type, const char* title, const char* description, const char* badge_url);
+/// Event types for callbacks
+enum {
+    AZ_RA_EVENT_ACHIEVEMENT_TRIGGERED = 0,
+    AZ_RA_EVENT_LEADERBOARD_STARTED = 1,
+    AZ_RA_EVENT_LEADERBOARD_SUBMITTED = 2,
+    AZ_RA_EVENT_CHALLENGE_INDICATOR_SHOW = 3,
+    AZ_RA_EVENT_CHALLENGE_INDICATOR_HIDE = 4,
+    AZ_RA_EVENT_PROGRESS_INDICATOR_SHOW = 5,
+    AZ_RA_EVENT_PROGRESS_INDICATOR_HIDE = 6,
+    AZ_RA_EVENT_PROGRESS_INDICATOR_UPDATE = 7,
+    AZ_RA_EVENT_LEADERBOARD_TRACKER_SHOW = 8,
+    AZ_RA_EVENT_LEADERBOARD_TRACKER_HIDE = 9,
+    AZ_RA_EVENT_LEADERBOARD_TRACKER_UPDATE = 10,
+};
 
-/// Login callbacks
+/// Event callback for achievements, leaderboards, challenges, and progress
+typedef void (*az_ra_event_callback)(int event_type, const char* title, const char* description, const char* badge_url, const char* value);
+
+/// Set event callback
 void az_ra_set_event_callback(az_ra_event_callback callback);
 
 /// Login with username and password
@@ -491,13 +526,33 @@ const az_ra_user_t* az_ra_get_user(void);
 const az_ra_game_t* az_ra_get_game(void);
 
 /// Get achievement list for current game
+/// Returns number of achievements written to out buffer
+/// Pass NULL to get count without writing
 int az_ra_get_achievements(az_ra_achievement_t* out, int max_count);
+
+/// Get leaderboard list for current game
+/// Returns number of leaderboards written to out buffer
+/// Pass NULL to get count without writing
+int az_ra_get_leaderboards(az_ra_leaderboard_t* out, int max_count);
+
+/// Fetch image data from URL (async)
+typedef void (*az_ra_image_callback)(const unsigned char* data, int size);
+void az_ra_fetch_image(const char* url, az_ra_image_callback callback);
 
 /// Enable/disable RetroAchievements
 void az_ra_set_enabled(bool enabled);
 
 /// Check if RetroAchievements is enabled
 bool az_ra_is_enabled(void);
+
+/// Enable/disable hardcore mode
+void az_ra_set_hardcore_enabled(bool enabled);
+
+/// Check if hardcore mode is enabled
+bool az_ra_is_hardcore_enabled(void);
+
+/// Check if hardcore mode can be paused (for showing menus)
+bool az_ra_can_pause_hardcore(void);
 
 // ---------------------------------------------------------------------------
 // Misc

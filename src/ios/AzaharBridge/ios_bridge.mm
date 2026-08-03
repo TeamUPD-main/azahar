@@ -869,13 +869,14 @@ public:
     void OnLoadGameSucceeded(const rc_client_game_t* game) override {
         if (game) {
             ra_cached_game_title = game->title ? game->title : "";
-            ra_cached_game_badge_url = game->badge_url ? game->badge_url : "";
+            ra_cached_game_badge_url = game->badge_name ? game->badge_name : "";
             
             ra_cached_game.id = game->id;
             ra_cached_game.title = ra_cached_game_title.c_str();
             ra_cached_game.badge_url = ra_cached_game_badge_url.c_str();
-            ra_cached_game.num_achievements = game->num_achievements;
+            ra_cached_game.num_achievements = game->num_core_achievements + game->num_unofficial_achievements;
             ra_cached_game.num_unlocked = game->num_unlocked_achievements;
+            ra_cached_game.num_leaderboards = game->num_leaderboards;
         }
     }
 
@@ -883,37 +884,108 @@ public:
         LOG_ERROR(Frontend, "RetroAchievements load game failed: {}", error_message);
     }
 
+    void OnAchievementTriggered(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_ACHIEVEMENT_TRIGGERED,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         "");
+    }
+
+    void OnLeaderboardStarted(const rc_client_leaderboard_t* leaderboard) override {
+        if (!ra_event_callback || !leaderboard) return;
+        ra_event_callback(AZ_RA_EVENT_LEADERBOARD_STARTED,
+                         leaderboard->title ? leaderboard->title : "",
+                         leaderboard->description ? leaderboard->description : "",
+                         "",
+                         "");
+    }
+
+    void OnLeaderboardSubmitted(const rc_client_leaderboard_t* leaderboard) override {
+        if (!ra_event_callback || !leaderboard) return;
+        ra_event_callback(AZ_RA_EVENT_LEADERBOARD_SUBMITTED,
+                         leaderboard->title ? leaderboard->title : "",
+                         leaderboard->description ? leaderboard->description : "",
+                         "",
+                         "");
+    }
+
+    void OnLeaderboardTrackerShow(const rc_client_leaderboard_tracker_t* tracker) override {
+        if (!ra_event_callback || !tracker) return;
+        ra_event_callback(AZ_RA_EVENT_LEADERBOARD_TRACKER_SHOW,
+                         tracker->display ? tracker->display : "",
+                         "",
+                         "",
+                         "");
+    }
+
+    void OnLeaderboardTrackerHide(const rc_client_leaderboard_tracker_t* tracker) override {
+        if (!ra_event_callback || !tracker) return;
+        ra_event_callback(AZ_RA_EVENT_LEADERBOARD_TRACKER_HIDE,
+                         tracker->display ? tracker->display : "",
+                         "",
+                         "",
+                         "");
+    }
+
+    void OnLeaderboardTrackerUpdate(const rc_client_leaderboard_tracker_t* tracker) override {
+        if (!ra_event_callback || !tracker) return;
+        ra_event_callback(AZ_RA_EVENT_LEADERBOARD_TRACKER_UPDATE,
+                         tracker->display ? tracker->display : "",
+                         "",
+                         "",
+                         "");
+    }
+
+    void OnChallengeIndicatorShow(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_CHALLENGE_INDICATOR_SHOW,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         "");
+    }
+
+    void OnChallengeIndicatorHide(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_CHALLENGE_INDICATOR_HIDE,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         "");
+    }
+
+    void OnProgressIndicatorShow(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_PROGRESS_INDICATOR_SHOW,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         achievement->measured_progress ? achievement->measured_progress : "");
+    }
+
+    void OnProgressIndicatorHide(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_PROGRESS_INDICATOR_HIDE,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         "");
+    }
+
+    void OnProgressIndicatorUpdate(const rc_client_achievement_t* achievement) override {
+        if (!ra_event_callback || !achievement) return;
+        ra_event_callback(AZ_RA_EVENT_PROGRESS_INDICATOR_UPDATE,
+                         achievement->title ? achievement->title : "",
+                         achievement->description ? achievement->description : "",
+                         achievement->badge_name ? achievement->badge_name : "",
+                         achievement->measured_progress ? achievement->measured_progress : "");
+    }
+
     void OnEvent(const rc_client_event_t* event) override {
-        if (!ra_event_callback || !event) return;
-
-        const char* title = "";
-        const char* description = "";
-        const char* badge_url = "";
-
-        switch (event->type) {
-            case RC_CLIENT_EVENT_ACHIEVEMENT_TRIGGERED:
-                if (event->achievement) {
-                    title = event->achievement->title ? event->achievement->title : "";
-                    description = event->achievement->description ? event->achievement->description : "";
-                    badge_url = event->achievement->badge_url ? event->achievement->badge_url : "";
-                }
-                break;
-            case RC_CLIENT_EVENT_LEADERBOARD_STARTED:
-            case RC_CLIENT_EVENT_LEADERBOARD_FAILED:
-            case RC_CLIENT_EVENT_LEADERBOARD_SUBMITTED:
-            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_UPDATE:
-            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_SHOW:
-            case RC_CLIENT_EVENT_LEADERBOARD_TRACKER_HIDE:
-                if (event->leaderboard) {
-                    title = event->leaderboard->title ? event->leaderboard->title : "";
-                    description = event->leaderboard->description ? event->leaderboard->description : "";
-                }
-                break;
-            default:
-                break;
-        }
-
-        ra_event_callback(event->type, title, description, badge_url);
+        // Generic fallback for any unhandled events
+        LOG_DEBUG(Frontend, "RetroAchievements event: {}", event->type);
     }
 };
 
@@ -993,13 +1065,137 @@ const az_ra_user_t* az_ra_get_user(void) {
 }
 
 const az_ra_game_t* az_ra_get_game(void) {
-    // TODO: Implement when game loading is integrated
-    return nullptr;
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    const rc_client_game_t* game = client.GetGame();
+    
+    if (!game) return nullptr;
+    
+    // Update cached game data
+    static az_ra_game_t cached_game;
+    static std::string cached_title;
+    static std::string cached_badge_url;
+    
+    cached_title = game->title ? game->title : "";
+    cached_badge_url = game->badge_name ? game->badge_name : "";
+    
+    cached_game.id = game->id;
+    cached_game.title = cached_title.c_str();
+    cached_game.badge_url = cached_badge_url.c_str();
+    cached_game.num_achievements = game->num_core_achievements + game->num_unofficial_achievements;
+    cached_game.num_unlocked = game->num_unlocked_achievements;
+    cached_game.num_leaderboards = game->num_leaderboards;
+    
+    return &cached_game;
 }
 
 int az_ra_get_achievements(az_ra_achievement_t* out, int max_count) {
-    // TODO: Implement achievement list retrieval
-    return 0;
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    
+    // Get achievement list (category: all, grouping: none)
+    rc_client_achievement_list_t* list = client.CreateAchievementList(
+        RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL, 
+        RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_NONE);
+    
+    if (!list) return 0;
+    
+    int count = 0;
+    for (uint32_t i = 0; i < list->num_buckets && count < max_count; i++) {
+        rc_client_achievement_bucket_t* bucket = &list->buckets[i];
+        for (uint32_t j = 0; j < bucket->num_achievements && count < max_count; j++) {
+            rc_client_achievement_t* ach = bucket->achievements[j];
+            
+            if (out) {
+                // Store achievement data in static storage to keep strings valid
+                static std::vector<std::string> cached_titles;
+                static std::vector<std::string> cached_descriptions;
+                static std::vector<std::string> cached_badge_urls;
+                static std::vector<std::string> cached_progress;
+                
+                // Resize if needed
+                if (cached_titles.size() <= count) {
+                    cached_titles.resize(count + 1);
+                    cached_descriptions.resize(count + 1);
+                    cached_badge_urls.resize(count + 1);
+                    cached_progress.resize(count + 1);
+                }
+                
+                cached_titles[count] = ach->title ? ach->title : "";
+                cached_descriptions[count] = ach->description ? ach->description : "";
+                cached_badge_urls[count] = ach->badge_name ? ach->badge_name : "";
+                cached_progress[count] = ach->measured_progress ? ach->measured_progress : "";
+                
+                out[count].id = ach->id;
+                out[count].title = cached_titles[count].c_str();
+                out[count].description = cached_descriptions[count].c_str();
+                out[count].badge_url = cached_badge_urls[count].c_str();
+                out[count].points = ach->points;
+                out[count].unlocked = (ach->state == RC_CLIENT_ACHIEVEMENT_STATE_UNLOCKED);
+                out[count].hardcore = (ach->unlock_time != 0);
+                out[count].progress_indicator = cached_progress[count].c_str();
+                out[count].progress_percent = ach->measured_percent;
+            }
+            
+            count++;
+        }
+    }
+    
+    client.DestroyAchievementList(list);
+    return count;
+}
+
+int az_ra_get_leaderboards(az_ra_leaderboard_t* out, int max_count) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    
+    // Get leaderboard list
+    rc_client_leaderboard_list_t* list = client.CreateLeaderboardList(
+        RC_CLIENT_LEADERBOARD_LIST_GROUPING_NONE);
+    
+    if (!list) return 0;
+    
+    int count = 0;
+    for (uint32_t i = 0; i < list->num_buckets && count < max_count; i++) {
+        rc_client_leaderboard_bucket_t* bucket = &list->buckets[i];
+        for (uint32_t j = 0; j < bucket->num_leaderboards && count < max_count; j++) {
+            rc_client_leaderboard_t* lb = bucket->leaderboards[j];
+            
+            if (out) {
+                static std::vector<std::string> cached_titles;
+                static std::vector<std::string> cached_descriptions;
+                
+                if (cached_titles.size() <= count) {
+                    cached_titles.resize(count + 1);
+                    cached_descriptions.resize(count + 1);
+                }
+                
+                cached_titles[count] = lb->title ? lb->title : "";
+                cached_descriptions[count] = lb->description ? lb->description : "";
+                
+                out[count].id = lb->id;
+                out[count].title = cached_titles[count].c_str();
+                out[count].description = cached_descriptions[count].c_str();
+                out[count].num_entries = 0; // Would need to fetch entries separately
+            }
+            
+            count++;
+        }
+    }
+    
+    client.DestroyLeaderboardList(list);
+    return count;
+}
+
+void az_ra_fetch_image(const char* url, az_ra_image_callback callback) {
+    if (!url || !callback) return;
+    
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    
+    client.FetchImage(url, [callback](std::vector<uint8_t>&& image_data) {
+        callback(image_data.data(), static_cast<int>(image_data.size()));
+    });
 }
 
 void az_ra_set_enabled(bool enabled) {
@@ -1008,6 +1204,24 @@ void az_ra_set_enabled(bool enabled) {
 
 bool az_ra_is_enabled(void) {
     return Settings::values.retroachievements_enabled.GetValue();
+}
+
+void az_ra_set_hardcore_enabled(bool enabled) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    client.SetHardcoreEnabled(enabled);
+}
+
+bool az_ra_is_hardcore_enabled(void) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    return client.IsHardcoreEnabled();
+}
+
+bool az_ra_can_pause_hardcore(void) {
+    auto& system = Core::System::GetInstance();
+    auto& client = system.RetroAchievementsClient();
+    return client.CanPauseHardcore();
 }
 
 // ---------------------------------------------------------------------------

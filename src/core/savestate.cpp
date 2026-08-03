@@ -19,6 +19,10 @@
 #include "core/savestate_data.h"
 #include "network/network.h"
 
+#ifdef ENABLE_RETRO_ACHIEVEMENTS
+#include "retro_achievements/retro_achievements.h"
+#endif
+
 namespace Core {
 
 #pragma pack(push, 1)
@@ -168,6 +172,12 @@ void System::SaveState(u32 slot) const {
         file.WriteBytes(buffer.data(), buffer.size()) != buffer.size()) {
         throw std::runtime_error("Could not write to file " + path);
     }
+
+#ifdef ENABLE_RETRO_ACHIEVEMENTS
+    // Serialize RetroAchievements progress for this save state
+    // This ensures achievement tracking is correct when loading states
+    RetroAchievements::OnSaveState();
+#endif
 }
 
 void System::LoadState(u32 slot) {
@@ -215,6 +225,12 @@ void System::LoadState(u32 slot) {
     // Deserialize
     iarchive ia{sstream};
     ia&* this;
+
+#ifdef ENABLE_RETRO_ACHIEVEMENTS
+    // Deserialize RetroAchievements progress for this save state
+    // This ensures achievement tracking state is restored correctly
+    RetroAchievements::OnLoadState();
+#endif
 }
 
 std::vector<u8> System::SaveStateBuffer() const {

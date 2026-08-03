@@ -189,10 +189,40 @@ struct SettingsView: View {
                 }
 
                 settingsSection("RetroAchievements", icon: "trophy") {
+                    SettingToggle(
+                        title: "Enable RetroAchievements",
+                        description: "Track achievements while playing",
+                        group: "RetroAchievements", key: "retroachievements_enabled"
+                    )
+                    
                     NavigationLink {
                         RetroAchievementsView()
                     } label: {
-                        Label("RetroAchievements Login", systemImage: "person.circle")
+                        Label("Account & Login", systemImage: "person.circle")
+                    }
+                    
+                    NavigationLink {
+                        AchievementListView()
+                    } label: {
+                        Label("Achievements", systemImage: "trophy")
+                    }
+                    
+                    NavigationLink {
+                        LeaderboardListView()
+                    } label: {
+                        Label("Leaderboards", systemImage: "chart.bar")
+                    }
+                    
+                    Toggle(isOn: Binding(
+                        get: { az_ra_is_hardcore_enabled() },
+                        set: { az_ra_set_hardcore_enabled($0) }
+                    )) {
+                        VStack(alignment: .leading) {
+                            Text("Hardcore Mode")
+                            Text("Disables save states and cheats for full challenge")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
                     Text("Track achievements and compete on leaderboards")

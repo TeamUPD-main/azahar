@@ -21,6 +21,10 @@
 #include "video_core/right_eye_disabler.h"
 #include "video_core/video_core.h"
 
+#ifdef ENABLE_RETRO_ACHIEVEMENTS
+#include "retro_achievements/retro_achievements.h"
+#endif
+
 namespace VideoCore {
 
 constexpr VAddr VADDR_LCD = 0x1ED02000;
@@ -492,6 +496,11 @@ void GPU::VBlankCallback(std::uintptr_t user_data, s64 cycles_late) {
 
     // Present renderered frame.
     impl->renderer->SwapBuffers();
+
+#ifdef ENABLE_RETRO_ACHIEVEMENTS
+    // Process RetroAchievements logic each frame
+    RetroAchievements::DoFrame();
+#endif
 
     // Reschedule recurrent event
     impl->timing.ScheduleEvent(FRAME_TICKS - cycles_late, impl->vblank_event);
