@@ -525,3 +525,8 @@ else()
     target_compile_definitions(xxhash PRIVATE XXH_VECTOR=XXH_SCALAR)
     message(STATUS "Disabling SIMD for xxHash")
 endif()
+
+# RetroAchievements
+if (ENABLE_RETRO_ACHIEVEMENTS)
+    add_subdirectory(rcheevos EXCLUDE_FROM_ALL)
+endif()
