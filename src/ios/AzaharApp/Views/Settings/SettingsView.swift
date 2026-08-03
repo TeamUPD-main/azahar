@@ -189,28 +189,10 @@ struct SettingsView: View {
                 }
 
                 settingsSection("RetroAchievements", icon: "trophy") {
-                    SettingToggle(
-                        title: "Enable RetroAchievements",
-                        description: "Track achievements while playing",
-                        group: "RetroAchievements", key: "retroachievements_enabled"
-                    )
-                    
                     NavigationLink {
                         RetroAchievementsView()
                     } label: {
                         Label("Account & Login", systemImage: "person.circle")
-                    }
-                    
-                    NavigationLink {
-                        AchievementListView()
-                    } label: {
-                        Label("Achievements", systemImage: "trophy")
-                    }
-                    
-                    NavigationLink {
-                        LeaderboardListView()
-                    } label: {
-                        Label("Leaderboards", systemImage: "chart.bar")
                     }
                     
                     Toggle(isOn: Binding(

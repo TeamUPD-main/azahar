@@ -874,9 +874,11 @@ public:
             ra_cached_game.id = game->id;
             ra_cached_game.title = ra_cached_game_title.c_str();
             ra_cached_game.badge_url = ra_cached_game_badge_url.c_str();
-            ra_cached_game.num_achievements = game->num_core_achievements + game->num_unofficial_achievements;
-            ra_cached_game.num_unlocked = game->num_unlocked_achievements;
-            ra_cached_game.num_leaderboards = game->num_leaderboards;
+            // Note: achievement/leaderboard counts not available in rc_client_game_t
+            // These will need to be fetched separately via CreateAchievementList/CreateLeaderboardList
+            ra_cached_game.num_achievements = 0;
+            ra_cached_game.num_unlocked = 0;
+            ra_cached_game.num_leaderboards = 0;
         }
     }
 
@@ -1082,9 +1084,37 @@ const az_ra_game_t* az_ra_get_game(void) {
     cached_game.id = game->id;
     cached_game.title = cached_title.c_str();
     cached_game.badge_url = cached_badge_url.c_str();
-    cached_game.num_achievements = game->num_core_achievements + game->num_unofficial_achievements;
-    cached_game.num_unlocked = game->num_unlocked_achievements;
-    cached_game.num_leaderboards = game->num_leaderboards;
+    
+    // Get counts by querying the lists
+    rc_client_achievement_list_t* ach_list = client.CreateAchievementList(
+        RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL,
+        RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_LOCK_STATE);
+    
+    cached_game.num_achievements = 0;
+    cached_game.num_unlocked = 0;
+    if (ach_list) {
+        for (uint32_t i = 0; i < ach_list->num_buckets; i++) {
+            cached_game.num_achievements += ach_list->buckets[i].num_achievements;
+            // Count unlocked achievements
+            for (uint32_t j = 0; j < ach_list->buckets[i].num_achievements; j++) {
+                if (ach_list->buckets[i].achievements[j]->state == RC_CLIENT_ACHIEVEMENT_STATE_UNLOCKED) {
+                    cached_game.num_unlocked++;
+                }
+            }
+        }
+        client.DestroyAchievementList(ach_list);
+    }
+    
+    rc_client_leaderboard_list_t* lb_list = client.CreateLeaderboardList(
+        RC_CLIENT_LEADERBOARD_LIST_GROUPING_NONE);
+    
+    cached_game.num_leaderboards = 0;
+    if (lb_list) {
+        for (uint32_t i = 0; i < lb_list->num_buckets; i++) {
+            cached_game.num_leaderboards += lb_list->buckets[i].num_leaderboards;
+        }
+        client.DestroyLeaderboardList(lb_list);
+    }
     
     return &cached_game;
 }
@@ -1093,18 +1123,18 @@ int az_ra_get_achievements(az_ra_achievement_t* out, int max_count) {
     auto& system = Core::System::GetInstance();
     auto& client = system.RetroAchievementsClient();
     
-    // Get achievement list (category: all, grouping: none)
+    // Get achievement list (category: all, grouping: lock state)
     rc_client_achievement_list_t* list = client.CreateAchievementList(
         RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL, 
-        RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_NONE);
+        RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_LOCK_STATE);
     
     if (!list) return 0;
     
     int count = 0;
     for (uint32_t i = 0; i < list->num_buckets && count < max_count; i++) {
-        rc_client_achievement_bucket_t* bucket = &list->buckets[i];
+        const rc_client_achievement_bucket_t* bucket = &list->buckets[i];
         for (uint32_t j = 0; j < bucket->num_achievements && count < max_count; j++) {
-            rc_client_achievement_t* ach = bucket->achievements[j];
+            const rc_client_achievement_t* ach = bucket->achievements[j];
             
             if (out) {
                 // Store achievement data in static storage to keep strings valid
@@ -1157,9 +1187,9 @@ int az_ra_get_leaderboards(az_ra_leaderboard_t* out, int max_count) {
     
     int count = 0;
     for (uint32_t i = 0; i < list->num_buckets && count < max_count; i++) {
-        rc_client_leaderboard_bucket_t* bucket = &list->buckets[i];
+        const rc_client_leaderboard_bucket_t* bucket = &list->buckets[i];
         for (uint32_t j = 0; j < bucket->num_leaderboards && count < max_count; j++) {
-            rc_client_leaderboard_t* lb = bucket->leaderboards[j];
+            const rc_client_leaderboard_t* lb = bucket->leaderboards[j];
             
             if (out) {
                 static std::vector<std::string> cached_titles;
@@ -1199,11 +1229,14 @@ void az_ra_fetch_image(const char* url, az_ra_image_callback callback) {
 }
 
 void az_ra_set_enabled(bool enabled) {
-    Settings::values.retroachievements_enabled = enabled;
+    // Note: Settings value for retroachievements_enabled doesn't exist yet
+    // For now, this is a no-op. Enable/disable should be controlled via login/logout
+    LOG_INFO(Frontend, "RetroAchievements enabled: {}", enabled);
 }
 
 bool az_ra_is_enabled(void) {
-    return Settings::values.retroachievements_enabled.GetValue();
+    // Check if user is logged in as proxy for "enabled"
+    return az_ra_is_logged_in();
 }
 
 void az_ra_set_hardcore_enabled(bool enabled) {
