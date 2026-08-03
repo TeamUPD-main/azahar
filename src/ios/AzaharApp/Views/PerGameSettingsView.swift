@@ -294,14 +294,14 @@ struct CheatManagementView: View {
         
         // Load cheats via bridge
         var cheatEntries = [az_cheat_entry](repeating: az_cheat_entry(), count: 100)
-        let count = az_cheats_load(cheatFile, &cheatEntries, 100)
+        let count = Int(az_cheats_load(cheatFile, &cheatEntries, 100))
         
         guard count > 0 else {
             isLoading = false
             return
         }
         
-        cheats = (0..<Int(count)).map { i in
+        cheats = (0..<count).map { i in
             let entry = cheatEntries[i]
             return CheatEntry(
                 id: entry.id,
