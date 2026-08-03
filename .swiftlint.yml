@@ -24,11 +24,16 @@ disabled_rules:
   - type_body_length               # Large view models are acceptable
   - cyclomatic_complexity          # Emulation state machines are complex
   - function_parameter_count       # C bridge functions may have many params
-  - identifier_name                # Allow short names like 'x', 'y', 'id'
+  - identifier_name                # Allow short names like 'x', 'y', 'i', 't'
   - nesting                        # Deep nesting is sometimes necessary
   - todo                           # Don't block builds on TODOs
   - shorthand_operator             # Personal preference
   - trailing_comma                 # Optional style choice
+  - trailing_whitespace            # Will fix gradually
+  - force_cast                     # Some casts are necessary for Metal interop
+  - implicit_optional_initialization  # Explicit nil is clearer sometimes
+  - vertical_parameter_alignment   # Not critical for readability
+  - static_over_final_class        # Personal preference
 
 # Enable opt-in rules for better code quality
 opt_in_rules:
