@@ -71,7 +71,7 @@ struct EmulationView: View {
             }
         }
         .onAppear {
-            viewModel.startEmulation()
+            // Signal MetalView to bind surface and then start
         }
         .onDisappear {
             viewModel.stop()

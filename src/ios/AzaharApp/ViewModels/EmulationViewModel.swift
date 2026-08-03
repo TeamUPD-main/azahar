@@ -48,6 +48,13 @@ final class EmulationViewModel: ObservableObject {
         }
 
         emulationThread = Task.detached(priority: .userInitiated) {
+            // Wait until surface is set. 
+            // In a production app, use a proper ConditionVariable or async stream.
+            // For now, poll briefly.
+            while !az_is_surface_set() {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
+
             az_run(path)
 
             await MainActor.run {

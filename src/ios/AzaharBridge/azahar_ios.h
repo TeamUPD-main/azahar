@@ -227,6 +227,7 @@ int64_t az_get_running_title_id(void);
 /// layer's contents scale (points-to-pixels). Call on the main thread.
 void az_emu_surface_set(void* metal_layer, float scale);
 void az_emu_surface_destroy(void);
+bool az_is_surface_set(void);
 
 /// Hands the bridge a CAMetalLayer for the secondary (external) display.
 void az_emu_secondary_surface_set(void* metal_layer, float scale);

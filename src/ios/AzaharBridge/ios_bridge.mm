@@ -266,6 +266,15 @@ int az_get_last_result(void) {
 
 void az_run(const char* path) {
     if (!path) return;
+    
+    // Safety Guard: Ensure surface is ready
+    if (!pending_primary_layer) {
+        LOG_CRITICAL(Frontend, "az_run: Cannot start emulation, primary surface is NULL!");
+        return;
+    }
+    
+    LOG_INFO(Frontend, "az_run: Path: {}", path);
+    
     pending_rom_path = path;
     last_result.store(AZ_CORE_ERROR_UNKNOWN);
     RunCitra(pending_rom_path);
