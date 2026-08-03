@@ -297,8 +297,7 @@ struct CheatManagementView: View {
         let count = az_cheats_load(cheatFile, &cheatEntries, 100)
         
         if count > 0 {
-            cheats = (0..<Int(count)).compactMap { i in
-                guard i < cheatEntries.count else { return nil }
+            cheats = (0..<Int(count)).map { i in
                 let entry = cheatEntries[i]
                 return CheatEntry(
                     id: entry.id,

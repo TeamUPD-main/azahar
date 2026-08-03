@@ -94,8 +94,17 @@ enum GameScanner {
             let titleId: UInt64
             
             if hasMetadata {
-                title = String(cString: metadata.title)
-                publisher = String(cString: metadata.publisher)
+                // Convert C char arrays to Swift strings
+                title = withUnsafePointer(to: &metadata.title) { ptr in
+                    ptr.withMemoryRebound(to: CChar.self, capacity: 256) {
+                        String(cString: $0)
+                    }
+                }
+                publisher = withUnsafePointer(to: &metadata.publisher) { ptr in
+                    ptr.withMemoryRebound(to: CChar.self, capacity: 256) {
+                        String(cString: $0)
+                    }
+                }
                 playTime = metadata.play_time_seconds
                 titleId = metadata.title_id
             } else {
