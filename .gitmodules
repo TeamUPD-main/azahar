@@ -109,3 +109,6 @@
 [submodule "externals/rcheevos/rcheevos"]
 	path = externals/rcheevos/rcheevos
 	url = https://github.com/RetroAchievements/rcheevos.git
+[submodule "externals/libzip"]
+	path = externals/libzip
+	url = https://github.com/nih-at/libzip.git
