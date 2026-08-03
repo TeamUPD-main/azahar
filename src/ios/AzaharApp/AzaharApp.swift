@@ -7,22 +7,26 @@ import SwiftUI
 @main
 struct AzaharApp: App {
     @StateObject private var appState = AppState()
+    @StateObject private var jitContext = JITEnableContext.shared
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("autoEnableJIT") private var autoEnableJIT = false
-    @AppStorage("useStikDebug") private var useStikDebug = true
+    @AppStorage("autoEnableJIT") private var autoEnableJIT = true  // Default: enabled
+
+    init() {
+        // Install iOS 26 crash prevention handlers
+        installJIT26BreakpointHandler()
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
+                .environmentObject(jitContext)
                 .onAppear {
                     appState.initialize()
                     
                     // Auto-enable JIT on first launch if configured
-                    if autoEnableJIT {
-                        Task {
-                            await appState.enableJITIfNeeded()
-                        }
+                    if autoEnableJIT && !jitContext.isJITEnabled {
+                        jitContext.enableJITViaStikDebug()
                     }
                 }
                 .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -38,10 +42,8 @@ struct AzaharApp: App {
             print("[Lifecycle] App active")
             
             // Re-enable JIT if configured and coming from background
-            if autoEnableJIT && oldPhase == .background {
-                Task {
-                    await appState.enableJITIfNeeded()
-                }
+            if autoEnableJIT && oldPhase == .background && !jitContext.isJITEnabled {
+                jitContext.enableJITViaStikDebug()
             }
             
         case .inactive:
@@ -66,8 +68,6 @@ final class AppState: ObservableObject {
     @Published var currentGame: Game?
     @Published var showingSettings = false
     @Published var showingDocumentPicker = false
-    
-    private var jitEnableAttempted = false
 
     func initialize() {
         let documentsPath = NSSearchPathForDirectoriesInDomains(
@@ -89,48 +89,6 @@ final class AppState: ObservableObject {
         )
 
         scanGames()
-    }
-    
-    /// Enable JIT if not already attempted
-    func enableJITIfNeeded() async {
-        guard !jitEnableAttempted else { return }
-        jitEnableAttempted = true
-        
-        // Check if using StikDebug method
-        let useStikDebug = UserDefaults.standard.bool(forKey: "useStikDebug")
-        
-        if useStikDebug {
-            // Try to trigger StikDebug via URL scheme
-            if let url = URL(string: "stikdebug://enable-jit?bundle-id=org.azahar_emu.Azahar") {
-                await MainActor.run {
-                    UIApplication.shared.open(url) { success in
-                        if success {
-                            print("[JIT] Triggered StikDebug for JIT enablement")
-                        } else {
-                            print("[JIT] StikDebug not available - please install it")
-                        }
-                    }
-                }
-            }
-        } else {
-            // Use built-in JIT enablement (experimental)
-            let context = JITEnableContext.shared
-            
-            // Only attempt if connected
-            guard context.isConnected && context.isDDIMounted else {
-                print("[JIT] Not connected or DDI not mounted - skipping auto-enable")
-                return
-            }
-            
-            do {
-                try context.enableJITForSelf { message in
-                    print("[JIT] \(message)")
-                }
-                print("[JIT] Successfully enabled JIT for Azahar")
-            } catch {
-                print("[JIT] Failed to enable JIT: \(error)")
-            }
-        }
     }
 
     func scanGames() {

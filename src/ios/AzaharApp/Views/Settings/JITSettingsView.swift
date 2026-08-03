@@ -7,119 +7,203 @@ import SwiftUI
 struct JITSettingsView: View {
     @StateObject private var jitContext = JITEnableContext.shared
     
-    @AppStorage("autoEnableJIT") private var autoEnableJIT = false
+    @AppStorage("autoEnableJIT") private var autoEnableJIT = true  // Default: enabled
     
     @State private var showError = false
     @State private var errorMessage = ""
     
     var body: some View {
         List {
-            // StikDebug Integration
+            // JIT Status Section
             Section {
-                Button {
-                    jitContext.openStikDebug()
-                } label: {
-                    HStack {
-                        Image(systemName: "app.badge")
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading) {
-                            Text("Open StikDebug")
-                            Text("Enable JIT using StikDebug app")
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(jitContext.isJITEnabled ? Color.green : Color.red)
+                        .frame(width: 10, height: 10)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(jitContext.isJITEnabled ? "JIT Enabled" : "JIT Not Enabled")
+                            .font(.headline)
+                            .foregroundStyle(jitContext.isJITEnabled ? .green : .red)
+                        
+                        if !jitContext.isJITEnabled {
+                            Text("Tap 'Open StikDebug' below to enable JIT")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Your emulator is running with JIT compilation")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    if jitContext.isJITEnabled {
+                        Image(systemName: "bolt.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.title2)
                     }
                 }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Status")
+            }
+            
+            // StikDebug Integration
+            Section {
+                Button {
+                    jitContext.enableJITViaStikDebug()
+                } label: {
+                    HStack {
+                        Image(systemName: "app.badge.checkmark")
+                            .foregroundStyle(.blue)
+                            .font(.title3)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Open StikDebug")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("Enable JIT compilation")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .disabled(jitContext.isJITEnabled)
                 
                 Button {
                     jitContext.openStikDebugDownload()
                 } label: {
                     HStack {
-                        Image(systemName: "arrow.down.circle")
+                        Image(systemName: "arrow.down.circle.fill")
                             .foregroundStyle(.green)
-                        VStack(alignment: .leading) {
+                            .font(.title3)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("Get StikDebug")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
                             Text("Download from GitHub")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        
                         Spacer()
-                        Image(systemName: "arrow.up.right")
+                        
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("JIT Enablement")
+            } footer: {
+                Text("StikDebug is a companion app that enables JIT compilation for sideloaded apps. Install both StikDebug and LocalDevVPN, then use StikDebug to enable JIT for Azahar.")
+            }
+            
+            // Auto-enable setting
+            Section {
+                Toggle(isOn: $autoEnableJIT) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Auto-enable JIT on Launch")
+                            .font(.headline)
+                        Text("Automatically trigger StikDebug when Azahar starts")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
                 
-                Text("StikDebug is a companion app that enables JIT compilation for sideloaded apps. It works on iOS 17.4+ and supports advanced features on iOS 26+ with TXM.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Text("JIT Enablement")
-            } footer: {
-                Text("After installing StikDebug and LocalDevVPN, use StikDebug to enable JIT for Azahar.")
-            }
-            
-            // Auto-enable setting
-            Section {
-                Toggle("Auto-enable JIT on Launch", isOn: $autoEnableJIT)
-                
-                Text("Automatically trigger StikDebug when Azahar starts")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if !autoEnableJIT {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Running Without JIT")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Text("Azahar will use the software interpreter, which is significantly slower. You can manually enable JIT anytime using the button above.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                }
             } header: {
                 Text("Automation")
+            } footer: {
+                if autoEnableJIT {
+                    Text("Azahar will automatically open StikDebug to enable JIT when the app launches or returns from background. Recommended for best performance.")
+                } else {
+                    Text("Auto-enable is OFF. Azahar will run in software interpreter mode (slow). Enable this toggle for optimal performance, or manually enable JIT using the button above when needed.")
+                }
             }
             
             // System Info
             Section {
-                HStack {
-                    Text("iOS Version")
-                    Spacer()
+                LabeledContent("iOS Version") {
                     Text(jitContext.getIOSVersion())
                         .foregroundStyle(.secondary)
                 }
                 
-                HStack {
-                    Text("TXM Support")
-                    Spacer()
+                LabeledContent("TXM Support") {
                     if jitContext.hasTXM {
                         Label("Available", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     } else {
-                        Label("Not Available", systemImage: "xmark.circle.fill")
+                        Label("Not Available", systemImage: "xmark.circle")
                             .foregroundStyle(.secondary)
                     }
                 }
                 
-                HStack {
-                    Text("Current PID")
-                    Spacer()
+                LabeledContent("Process ID") {
                     Text("\(jitContext.getCurrentPID())")
                         .foregroundStyle(.secondary)
+                        .font(.system(.body, design: .monospaced))
                 }
                 
-                HStack {
-                    Text("Bundle ID")
-                    Spacer()
+                LabeledContent("Bundle ID") {
                     Text(jitContext.getCurrentBundleID())
-                        .font(.caption)
                         .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             } header: {
                 Text("System Information")
             } footer: {
                 if !jitContext.hasTXM {
-                    Text("⚠️ iOS 27 with A13/A14/M1 chips requires TXM support for advanced JIT features. Your device may have limited JIT capabilities.")
+                    Text("⚠️ Your device has limited JIT capabilities. iOS 26+ with A13/A14/M1+ chips support advanced TXM features for better JIT performance.")
                         .font(.caption)
                 }
             }
+            
+            // About JIT Section
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Just-In-Time (JIT) compilation significantly improves emulation performance by translating guest code to native ARM64 code on the fly.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("JIT is required for smooth gameplay in most 3DS games. Without JIT, you may experience severe slowdowns and stuttering.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("About JIT")
+            }
         }
         .navigationTitle("JIT Settings")
-        .alert("JIT Error", isPresented: $showError) {
+        .alert("JIT Notice", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
