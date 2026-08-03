@@ -20,12 +20,12 @@ struct AzaharBridge {
         init?(from ptr: UnsafePointer<az_ra_user_t>?) {
             guard let ptr = ptr else { return nil }
             let user = ptr.pointee
-            self.username = String(cString: user.username)
-            self.displayName = String(cString: user.display_name)
+            self.username = String(cString: user.username!)
+            self.displayName = String(cString: user.display_name!)
             self.score = user.score
             self.scoreSoftcore = user.score_softcore
-            self.token = String(cString: user.token)
-            self.avatarUrl = String(cString: user.avatar_url)
+            self.token = String(cString: user.token!)
+            self.avatarUrl = String(cString: user.avatar_url!)
         }
     }
     

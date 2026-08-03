@@ -4,7 +4,17 @@
 
 import SwiftUI
 
+func safeString(from cString: UnsafePointer<Int8>?) -> String {
+    guard let cString = cString else { return "Unknown" }
+    return String(cString: cString)
+}
+
 /// Settings screen (equivalent to Android's SettingsActivity/SettingsFragment).
+func safeString(from cString: UnsafePointer<Int8>?) -> String {
+    guard let cString = cString else { return "Unknown" }
+    return String(cString: cString)
+}
+
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -258,7 +268,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text(String(cString: az_get_version_string()))
+                        Text(safeString(from: az_get_version_string()))
                             .foregroundStyle(.secondary)
                     }
                     NavigationLink("Licenses") {

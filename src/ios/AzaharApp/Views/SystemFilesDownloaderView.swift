@@ -18,6 +18,8 @@ struct SystemFilesDownloaderView: View {
     @State private var downloadComplete = false
     
     private var systemFilesAvailable: Bool {
+        // Force re-check or consider caching mechanism if needed, 
+        // but current az_system_files_available() should be sufficient.
         az_system_files_available()
     }
     

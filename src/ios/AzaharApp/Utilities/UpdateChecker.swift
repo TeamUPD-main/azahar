@@ -38,7 +38,7 @@ final class UpdateChecker: ObservableObject {
             else { return }
 
             latestVersion = tagName
-            let currentVersion = String(cString: az_get_version_string())
+            let currentVersion = safeString(from: az_get_version_string())
 
             if tagName != currentVersion {
                 hasUpdate = true
