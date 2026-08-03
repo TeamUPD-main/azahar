@@ -563,6 +563,12 @@ void az_free_string(char* str);
 /// Current git/build version strings.
 const char* az_get_version_string(void);
 
+// ---------------------------------------------------------------------------
+// JIT Enablement (idevice integration)
+// ---------------------------------------------------------------------------
+
+#include "idevice.h"
+
 #ifdef __cplusplus
 }
 #endif

@@ -34,6 +34,8 @@ add_library(azahar_ios STATIC
     AzaharBridge/camera_ios.mm
     AzaharBridge/applets_ios.h
     AzaharBridge/applets_ios.mm
+    AzaharBridge/idevice.h
+    AzaharBridge/idevice.c
 )
 
 target_include_directories(azahar_ios PUBLIC
@@ -57,6 +59,7 @@ set_target_properties(azahar_ios PROPERTIES
 # ---------------------------------------------------------------------------
 set(AZAHAR_SWIFT_SOURCES
     AzaharApp/AzaharApp.swift
+    AzaharApp/AzaharBridge.swift
     AzaharApp/Models/Game.swift
     AzaharApp/ViewModels/EmulationViewModel.swift
     AzaharApp/Views/RootView.swift
@@ -65,6 +68,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/MetalView.swift
     AzaharApp/Views/TouchControlsView.swift
     AzaharApp/Views/Settings/SettingsView.swift
+    AzaharApp/Views/Settings/JITSettingsView.swift
     AzaharApp/Views/Applets/SoftwareKeyboardView.swift
     AzaharApp/Views/Applets/MiiSelectorView.swift
     AzaharApp/Views/NetPlayView.swift
@@ -78,6 +82,8 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Utilities/GamepadManager.swift
     AzaharApp/Utilities/UpdateChecker.swift
     AzaharApp/Utilities/SMDHLoader.swift
+    AzaharApp/Utilities/JITEnableContext.swift
+    AzaharApp/Utilities/DDIManager.swift
 )
 
 # ---------------------------------------------------------------------------

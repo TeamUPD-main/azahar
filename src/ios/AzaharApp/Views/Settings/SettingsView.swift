@@ -224,6 +224,18 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                settingsSection("JIT Compilation", icon: "bolt.fill") {
+                    NavigationLink {
+                        JITSettingsView()
+                    } label: {
+                        Label("JIT Settings", systemImage: "bolt.circle")
+                    }
+                    
+                    Text("Enable Just-In-Time compilation for better performance")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 settingsSection("About", icon: "info.circle") {
                     HStack {
                         Text("Version")
