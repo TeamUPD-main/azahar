@@ -94,6 +94,7 @@ final class AppState: ObservableObject {
         az_create_log_file()
         az_set_user_directory(documentsPath)
         az_create_config_file()
+        az_init_crypto()  // Initialize AES keys for CIA/NUS operations
         az_log_device_info()
         az_play_time_init()
 

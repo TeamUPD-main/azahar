@@ -159,6 +159,11 @@ void az_create_config_file(void);
 /// Initializes and starts the log backend.
 void az_create_log_file(void);
 
+/// Initializes AES encryption keys needed for CIA file operations (NUS downloads, etc).
+/// Should be called once on app startup after az_set_user_directory.
+/// This allows NUS downloads to work without starting emulation.
+void az_init_crypto(void);
+
 /// Re-reads config.ini and applies settings to the running core if powered on.
 void az_reload_settings(void);
 

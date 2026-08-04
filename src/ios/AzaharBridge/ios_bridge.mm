@@ -144,6 +144,12 @@ void az_create_log_file(void) {
     AzaharLogging::Init();
 }
 
+void az_init_crypto(void) {
+    LOG_INFO(Frontend, "[Init] Initializing AES encryption keys for CIA operations");
+    HW::AES::InitKeys();
+    LOG_INFO(Frontend, "[Init] AES keys initialized successfully");
+}
+
 void az_reload_settings(void) {
     Config config;
     if (Core::System::GetInstance().IsPoweredOn()) {
@@ -832,11 +838,6 @@ void az_unlink_console(void) {
     HW::UniqueData::UnlinkConsole();
 }
 
-int az_download_title_from_nus(int64_t title_id) {
-    auto status = Service::AM::InstallFromNus(static_cast<u64>(title_id));
-    return static_cast<int>(status);
-}
-
 // ---------------------------------------------------------------------------
 // Save states / perf / play time
 // ---------------------------------------------------------------------------
@@ -1128,6 +1129,7 @@ bool az_dsp_firmware_available(void) {
 
 int az_download_title_from_nus(uint64_t title_id) {
     LOG_INFO(Frontend, "[NUS] Starting download for title {:016X}", title_id);
+    
     const auto status = Service::AM::InstallFromNus(title_id);
     if (status != Service::AM::InstallStatus::Success) {
         LOG_ERROR(Frontend, "[NUS] Failed to download title {:016X}, status: {}", title_id, static_cast<int>(status));

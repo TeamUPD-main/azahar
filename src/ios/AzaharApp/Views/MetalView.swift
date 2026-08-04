@@ -12,7 +12,15 @@ struct MetalView: UIViewRepresentable {
     @ObservedObject var viewModel: EmulationViewModel
 
     func makeUIView(context: Context) -> MetalViewUIView {
+        AppLogger.info("[MetalView] Creating MetalViewUIView")
         let view = MetalViewUIView(viewModel: viewModel)
+        
+        // CRITICAL FIX: Start presenting immediately after creation
+        DispatchQueue.main.async {
+            AppLogger.info("[MetalView] Calling startPresenting()")
+            view.startPresenting()
+        }
+        
         return view
     }
 
@@ -72,20 +80,32 @@ final class MetalViewUIView: UIView {
     }
 
     func startPresenting() {
-        guard displayLink == nil else { return }
+        guard displayLink == nil else { 
+            AppLogger.debug("[MetalView] startPresenting() called but displayLink already exists")
+            return 
+        }
 
+        AppLogger.info("[MetalView] Starting presentation - setting up Metal surface")
+        AppLogger.debug("[MetalView] Bounds: \(bounds), Scale: \(UIScreen.main.scale)")
+        
         let scale = Float(UIScreen.main.scale)
         az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), scale)
         isSurfaceSet = true
+        
+        AppLogger.info("[MetalView] Metal surface set successfully!")
 
         let portrait = bounds.height > bounds.width
         az_set_portrait_mode(portrait)
         az_update_framebuffer(portrait)
+        
+        AppLogger.debug("[MetalView] Portrait mode: \(portrait)")
 
         let link = CADisplayLink(target: self, selector: #selector(drawFrame))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 60)
         link.add(to: .main, forMode: .common)
         displayLink = link
+        
+        AppLogger.info("[MetalView] CADisplayLink started - ready to render frames")
     }
 
     func stopPresenting() {
