@@ -870,6 +870,28 @@ void az_load_state(int slot) {
     Core::System::GetInstance().SendSignal(Core::System::Signal::Load, slot);
 }
 
+bool az_save_state_exists(int slot) {
+    auto& system = Core::System::GetInstance();
+    const u64 title_id = system.Kernel().GetCurrentProcess()->codeset->program_id;
+    const auto savestates = Core::ListSaveStates(title_id, system.Movie().GetCurrentMovieID());
+    
+    for (const auto& savestate : savestates) {
+        if (savestate.slot == slot) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void az_take_screenshot() {
+    // Request screenshot from the renderer
+    Core::System::GetInstance().SendSignal(Core::System::Signal::Screenshot);
+}
+
+void az_reset() {
+    Core::System::GetInstance().SendSignal(Core::System::Signal::Reset);
+}
+
 void az_get_perf_stats(double* out) {
     if (!out) return;
     auto& system = Core::System::GetInstance();

@@ -138,75 +138,159 @@ struct EmulationView: View {
 /// Pause menu (equivalent to Android's EmulationMenuDialog).
 struct PauseMenuView: View {
     @ObservedObject var viewModel: EmulationViewModel
+    @State private var showCheatsView = false
+    @State private var showSettingsView = false
+    @State private var showSaveStateDialog = false
+    @State private var showLoadStateDialog = false
     let onResume: () -> Void
     let onExit: () -> Void
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6)
+            Color.black.opacity(0.7)
                 .ignoresSafeArea()
                 .onTapGesture { onResume() }
 
-            VStack(spacing: 20) {
-                Text(gameTitle)
-                    .font(.title2.bold())
-                    .foregroundStyle(.white)
+            VStack(spacing: 16) {
+                HStack {
+                    Text(gameTitle)
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Button {
+                        onResume()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+                .padding(.bottom, 8)
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 10) {
+                        // Resume
                         PauseButton(title: "Resume", icon: "play.fill", action: onResume)
-
-                        Section("Save/Load State") {
-                            HStack(spacing: 8) {
-                                ForEach(0..<3) { slot in
-                                    Button("Slot \(slot)") {
-                                        viewModel.saveState(slot: slot)
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                            }
-                            HStack(spacing: 8) {
-                                ForEach(0..<3) { slot in
-                                    Button("Load \(slot)") {
-                                        viewModel.loadState(slot: slot)
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                            }
+                        
+                        Divider().background(Color.white.opacity(0.3))
+                        
+                        // Save State
+                        PauseButton(title: "Save State", icon: "square.and.arrow.down.fill") {
+                            showSaveStateDialog = true
                         }
-
-                        Section("Settings") {
-                            Button {
-                                viewModel.cycleLayout()
-                            } label: {
-                                Label("Cycle Layout", systemImage: "rectangle.split.2x2")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-
-                            Button {
-                                viewModel.toggleTurbo()
-                            } label: {
-                                Label(
-                                    viewModel.turboEnabled ? "Turbo: ON" : "Turbo: OFF",
-                                    systemImage: "bolt.fill"
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                        
+                        // Load State
+                        PauseButton(title: "Load State", icon: "square.and.arrow.up.fill") {
+                            showLoadStateDialog = true
                         }
+                        
+                        Divider().background(Color.white.opacity(0.3))
+                        
+                        // Swap Screens
+                        PauseButton(title: "Swap Screens", icon: "rectangle.2.swap") {
+                            viewModel.swapScreens()
+                        }
+                        
+                        // Cycle Layout
+                        PauseButton(title: "Change Layout", icon: "rectangle.split.3x1") {
+                            viewModel.cycleLayout()
+                        }
+                        
+                        // Toggle Turbo
+                        PauseButton(
+                            title: viewModel.turboEnabled ? "Turbo: ON" : "Turbo: OFF",
+                            icon: "bolt.fill"
+                        ) {
+                            viewModel.toggleTurbo()
+                        }
+                        .tint(viewModel.turboEnabled ? .yellow : .gray)
+                        
+                        // Edit Controls
+                        PauseButton(title: "Edit Touch Controls", icon: "hand.tap.fill") {
+                            viewModel.toggleEditControls()
+                            onResume()
+                        }
+                        
+                        Divider().background(Color.white.opacity(0.3))
+                        
+                        // Cheats
+                        PauseButton(title: "Cheats", icon: "sparkles") {
+                            showCheatsView = true
+                        }
+                        
+                        // Settings
+                        PauseButton(title: "Settings", icon: "gearshape.fill") {
+                            showSettingsView = true
+                        }
+                        
+                        // Amiibo
+                        PauseButton(title: "Load Amiibo", icon: "circle.grid.2x2.fill") {
+                            viewModel.loadAmiibo()
+                        }
+                        
+                        // Screenshot
+                        PauseButton(title: "Take Screenshot", icon: "camera.fill") {
+                            viewModel.takeScreenshot()
+                            onResume()
+                        }
+                        
+                        // Reset
+                        PauseButton(title: "Reset Game", icon: "arrow.clockwise") {
+                            viewModel.resetGame()
+                            onResume()
+                        }
+                        .tint(.orange)
+                        
+                        Divider().background(Color.white.opacity(0.3))
+                        
+                        // Performance Stats
+                        PauseButton(
+                            title: viewModel.showPerfStats ? "Hide Stats" : "Show Stats",
+                            icon: "chart.bar.fill"
+                        ) {
+                            viewModel.togglePerfStats()
+                        }
+                        
+                        Divider().background(Color.white.opacity(0.3))
 
+                        // Exit
                         PauseButton(title: "Exit Game", icon: "xmark.circle.fill", action: onExit)
                             .tint(.red)
                     }
                     .padding(.horizontal)
                 }
+                .frame(maxHeight: 500)
             }
-            .frame(maxWidth: 400)
+            .frame(maxWidth: 450)
             .padding(24)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+            .padding(.horizontal, 20)
+            
+            // Save State Dialog
+            if showSaveStateDialog {
+                SaveStateDialog(
+                    viewModel: viewModel,
+                    isPresented: $showSaveStateDialog,
+                    isSaving: true
+                )
+            }
+            
+            // Load State Dialog
+            if showLoadStateDialog {
+                SaveStateDialog(
+                    viewModel: viewModel,
+                    isPresented: $showLoadStateDialog,
+                    isSaving: false
+                )
+            }
         }
         .transition(.opacity)
+        .sheet(isPresented: $showCheatsView) {
+            CheatsView(gamePath: viewModel.game.path)
+        }
+        .sheet(isPresented: $showSettingsView) {
+            PerGameSettingsView(game: viewModel.game)
+        }
     }
 
     private var gameTitle: String {

@@ -98,12 +98,19 @@ final class MetalViewUIView: UIView {
         
         AppLogger.debug("[MetalView] Portrait mode: \(portrait)")
 
-        let link = CADisplayLink(target: self, selector: #selector(drawFrame))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 60)
-        link.add(to: .main, forMode: .common)
-        displayLink = link
-        
-        AppLogger.info("[MetalView] CADisplayLink started - ready to render frames")
+        // Add ManicEMU-style delay before starting render loop
+        // This ensures Metal layer is fully initialized before rendering starts
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+            
+            AppLogger.info("[MetalView] Starting CADisplayLink after 1.0s delay (ManicEMU timing)")
+            let link = CADisplayLink(target: self, selector: #selector(self.drawFrame))
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 60)
+            link.add(to: .main, forMode: .common)
+            self.displayLink = link
+            
+            AppLogger.info("[MetalView] CADisplayLink started - ready to render frames")
+        }
     }
 
     func stopPresenting() {

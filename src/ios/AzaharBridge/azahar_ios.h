@@ -336,6 +336,13 @@ int az_download_title_from_nus(uint64_t title_id);
 int az_get_savestate_info(az_savestate_info* out, int max_count);
 void az_save_state(int slot);
 void az_load_state(int slot);
+bool az_save_state_exists(int slot);
+
+/// Takes a screenshot and saves it to the user's photo library
+void az_take_screenshot(void);
+
+/// Resets the emulated system
+void az_reset(void);
 
 /// Fills out[0..8] with {system_fps, game_fps, emulation_speed, time_vblank_interval,
 /// time_hle_svc, time_hle_ipc, time_gpu, time_swap, time_remaining}.

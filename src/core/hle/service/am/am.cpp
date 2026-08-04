@@ -87,16 +87,9 @@ public:
 };
 
 NCCHCryptoFile::NCCHCryptoFile(const std::string& out_file, bool encrypted_content) {
-    if (encrypted_content) {
-        // A console unique crypto file is used to store the decrypted NCCH file. This is done
-        // to prevent Azahar being used as a tool to download easy shareable decrypted contents
-        // from the eshop.
-        file = HW::UniqueData::OpenUniqueCryptoFile(out_file, "wb",
-                                                    HW::UniqueData::UniqueCryptoFileID::NCCH);
-    } else {
-        file = std::make_unique<FileUtil::IOFile>(out_file, "wb");
-    }
-
+    // AzaharPlus fix: Don't use unique crypto files - causes write failures
+    file = std::make_unique<FileUtil::IOFile>(out_file, "wb");
+    
     if (Settings::values.compress_cia_installs) {
         std::array<u8, 4> magic = {'N', 'C', 'C', 'H'};
         file = std::make_unique<FileUtil::Z3DSWriteIOFile>(
@@ -1079,8 +1072,11 @@ InstallStatus InstallCIA(const std::string& path,
             Core::System::GetInstance(),
             Service::AM::GetTitleMediaType(container.GetTitleMetadata().GetTitleID()));
 
-        if (container.GetTitleMetadata().HasEncryptedContent(container.GetHeader())) {
-            LOG_ERROR(Service_AM, "File {} is encrypted! Aborting...", path);
+        // AzaharPlus fix: Check for title key availability instead of just encrypted content
+        bool title_key_available = container.GetTicket().GetTitleKey().has_value();
+        if (!title_key_available && container.GetTitleMetadata().HasEncryptedContent()) {
+            LOG_ERROR(Service_AM, "File {} is encrypted and no title key is available! Aborting...",
+                      path);
             return InstallStatus::ErrorEncrypted;
         }
 

@@ -60,6 +60,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/AzaharBridge.swift
     AzaharApp/Models/Game.swift
     AzaharApp/Models/WhatsNewEntry.swift
+    AzaharApp/Models/TouchControlSettings.swift
     AzaharApp/ViewModels/EmulationViewModel.swift
     AzaharApp/Views/RootView.swift
     AzaharApp/Views/GameListView.swift
@@ -70,6 +71,8 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/EmulationLoadingView.swift
     AzaharApp/Views/MetalView.swift
     AzaharApp/Views/TouchControlsView.swift
+    AzaharApp/Views/AmiiboFilePicker.swift
+    AzaharApp/Views/SaveStateDialog.swift
     AzaharApp/Views/Settings/SettingsView.swift
     AzaharApp/Views/Settings/JITSettingsView.swift
     AzaharApp/Views/Settings/LogViewerView.swift
@@ -85,6 +88,9 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/RetroAchievements/RANotificationView.swift
     AzaharApp/Views/AboutView.swift
     AzaharApp/Views/WhatsNewView.swift
+    AzaharApp/Managers/ControllerManager.swift
+    AzaharApp/Managers/SaveStateManager.swift
+    AzaharApp/Managers/CompatibilityManager.swift
     AzaharApp/Utilities/GamepadManager.swift
     AzaharApp/Utilities/UpdateChecker.swift
     AzaharApp/Utilities/SMDHLoader.swift
@@ -208,13 +214,15 @@ endif()
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
 
-# Add WhatsNew.json as a bundle resource
+# Add WhatsNew.json and compatibility_list.json as bundle resources
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/WhatsNew.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/compatibility_list.json"
     PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
 )
 target_sources(azahar_ios_app PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/WhatsNew.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/compatibility_list.json"
 )
 
 # Add button PNG assets as bundle resources

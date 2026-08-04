@@ -292,6 +292,9 @@ struct GameRowView: View {
                     .lineLimit(1)
                 
                 HStack(spacing: 8) {
+                    // Compatibility indicator (colored circle)
+                    CompatibilityIndicator(rating: CompatibilityManager.shared.getRating(for: game.titleId))
+                    
                     if !game.publisher.isEmpty {
                         Text(game.publisher)
                             .font(.caption)
@@ -314,5 +317,33 @@ struct GameRowView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Compatibility indicator view - colored circle with rating
+struct CompatibilityIndicator: View {
+    let rating: CompatibilityRating
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(ratingColor)
+                .frame(width: 8, height: 8)
+            Text(rating.displayName)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+    
+    private var ratingColor: Color {
+        switch rating {
+        case .unknown: return .gray
+        case .wontBoot: return .red
+        case .bad: return .red.opacity(0.7)
+        case .okay: return .orange
+        case .good: return .yellow
+        case .great: return .green.opacity(0.7)
+        case .excellent: return .green
+        }
     }
 }

@@ -19,8 +19,9 @@ final class EmulationViewModel: ObservableObject {
     @Published var rightStickPosition: CGPoint = .zero
     @Published var isControlsVisible = true
     @Published var isLoading = false
+    
+    let game: Game
 
-    private let game: Game
     private var emulationThread: Task<Void, Never>?
     private var perfTimer: Timer?
 
@@ -179,6 +180,70 @@ final class EmulationViewModel: ObservableObject {
 
     func togglePerfStats() {
         showPerfStats.toggle()
+    }
+    
+    // Additional pause menu functions (matching Android)
+    func swapScreens() {
+        let current = az_setting_get_bool("Layout", "swap_screen", false)
+        az_setting_set_bool("Layout", "swap_screen", !current)
+        az_update_framebuffer(UIScreen.main.bounds.height > UIScreen.main.bounds.width)
+    }
+    
+    func toggleEditControls() {
+        var settings = TouchControlSettings.load()
+        settings.isEditModeEnabled.toggle()
+        settings.save()
+    }
+    
+    func loadAmiibo() {
+        // Trigger Amiibo file picker
+        // The picker will call loadAmiiboFile() with the selected URL
+    }
+    
+    func loadAmiiboFile(url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            AppLogger.error("Amiibo", message: "Failed to access file: \(url.path)")
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        let success = az_load_amiibo(url.path)
+        if success {
+            AppLogger.info("Amiibo loaded successfully from: \(url.path)")
+        } else {
+            AppLogger.error("Amiibo", message: "Failed to load Amiibo from: \(url.path)")
+        }
+    }
+    
+    func removeAmiibo() {
+        az_remove_amiibo()
+        AppLogger.info("Amiibo removed")
+    }
+    
+    func takeScreenshot() {
+        az_take_screenshot()
+    }
+    
+    func resetGame() {
+        az_reset()
+    }
+    
+    func saveStateExists(slot: Int) -> Bool {
+        return az_save_state_exists(Int32(slot))
+    }
+    
+    func saveStateTimestamp(slot: Int) -> String? {
+        guard saveStateExists(slot: slot) else { return nil }
+        
+        // Get current title ID
+        let titleId = az_get_running_title_id()
+        guard titleId > 0 else { return nil }
+        
+        if let date = SaveStateManager.shared.getTimestamp(for: UInt64(bitPattern: titleId), slot: slot) {
+            return SaveStateManager.shared.formatTimestamp(date)
+        }
+        
+        return "Saved"
     }
 
     private func updatePerfStats() {

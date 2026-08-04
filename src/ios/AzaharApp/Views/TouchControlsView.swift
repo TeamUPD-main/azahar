@@ -8,7 +8,11 @@ import SwiftUI
 /// Positions match the Android InputOverlay layout
 struct TouchControlsView: View {
     @ObservedObject var viewModel: EmulationViewModel
+    @StateObject private var controllerManager = ControllerManager.shared
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var settings = TouchControlSettings.load()
+    @State private var draggedButton: String?
+    @State private var dragOffset: CGSize = .zero
 
     var body: some View {
         GeometryReader { geometry in
@@ -16,26 +20,78 @@ struct TouchControlsView: View {
             let h = geometry.size.height
             let isLandscape = w > h
             
-            // Android uses 1000-based coordinates, we convert to percentages
-            // Landscape reference: 1000x1000 grid
-            // Portrait reference: 1000x1000 grid
+            // Calculate button sizes based on Android algorithm
+            let faceButtonSize = settings.buttonSize(for: .faceButton, screenSize: geometry.size)
+            let dpadSize = settings.buttonSize(for: .dpad, screenSize: geometry.size)
+            let triggerSize = settings.buttonSize(for: .trigger, screenSize: geometry.size)
+            let joystickSize = settings.buttonSize(for: .joystick, screenSize: geometry.size)
+            let centerButtonSize = settings.buttonSize(for: .centerButton, screenSize: geometry.size)
             
             ZStack {
-                if isLandscape {
-                    landscapeControls(width: w, height: h)
-                } else {
-                    portraitControls(width: w, height: h)
+                // Hide controls when controller is connected (unless in edit mode)
+                if !controllerManager.isControllerConnected || settings.isEditModeEnabled {
+                    if isLandscape {
+                        landscapeControls(
+                            width: w,
+                            height: h,
+                            faceButtonSize: faceButtonSize,
+                            dpadSize: dpadSize,
+                            triggerSize: triggerSize,
+                            joystickSize: joystickSize,
+                            centerButtonSize: centerButtonSize
+                        )
+                    } else {
+                        portraitControls(
+                            width: w,
+                            height: h,
+                            faceButtonSize: faceButtonSize,
+                            dpadSize: dpadSize,
+                            triggerSize: triggerSize,
+                            joystickSize: joystickSize,
+                            centerButtonSize: centerButtonSize
+                        )
+                    }
+                }
+                
+                // Always show pause button (even with controller)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            viewModel.togglePause()
+                        } label: {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .shadow(radius: 2)
+                        }
+                        .padding(16)
+                    }
+                    Spacer()
+                }
+                
+                // Edit mode overlay
+                if settings.isEditModeEnabled {
+                    editModeOverlay(geometry: geometry)
                 }
             }
         }
-        .allowsHitTesting(viewModel.isControlsVisible)
+        .allowsHitTesting(viewModel.isControlsVisible || settings.isEditModeEnabled)
     }
     
-    private func landscapeControls(width: CGFloat, height: CGFloat) -> some View {
+    private func landscapeControls(
+        width: CGFloat,
+        height: CGFloat,
+        faceButtonSize: CGFloat,
+        dpadSize: CGFloat,
+        triggerSize: CGFloat,
+        joystickSize: CGFloat,
+        centerButtonSize: CGFloat
+    ) -> some View {
         ZStack {
             // D-Pad (left side) - Position: (15, 470) out of 1000
-            DPadView()
-                .position(x: width * 0.015 + 60, y: height * 0.470 + 60)
+            DPadView(size: dpadSize)
+                .position(x: width * 0.015 + dpadSize/2, y: height * 0.470 + dpadSize/2)
             
             // Left Analog Stick - Position: (100, 670) out of 1000
             AnalogStickView(
@@ -44,7 +100,9 @@ struct TouchControlsView: View {
                     let nx = Float(x / 30)
                     let ny = Float(y / 30)
                     az_analog_event(Int32(AZ_STICK_LEFT), nx, ny)
-                }
+                },
+                size: joystickSize,
+                isCirclePad: true
             )
             .position(x: width * 0.100, y: height * 0.670)
             
@@ -55,60 +113,70 @@ struct TouchControlsView: View {
                     let nx = Float(x / 30)
                     let ny = Float(y / 30)
                     az_analog_event(Int32(AZ_STICK_C), nx, ny)
-                }
+                },
+                size: joystickSize,
+                isCirclePad: false
             )
             .position(x: width * 0.740, y: height * 0.770)
             
             // Face buttons (A/B/X/Y) - Right side
             // Button A - Position: (930, 620)
-            ButtonImage(name: "button_a", button: Int32(AZ_BUTTON_A))
+            ButtonImage(name: "button_a", button: Int32(AZ_BUTTON_A), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.930, y: height * 0.620)
             
             // Button B - Position: (870, 720)
-            ButtonImage(name: "button_b", button: Int32(AZ_BUTTON_B))
+            ButtonImage(name: "button_b", button: Int32(AZ_BUTTON_B), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.870, y: height * 0.720)
             
             // Button X - Position: (870, 520)
-            ButtonImage(name: "button_x", button: Int32(AZ_BUTTON_X))
+            ButtonImage(name: "button_x", button: Int32(AZ_BUTTON_X), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.870, y: height * 0.520)
             
             // Button Y - Position: (810, 620)
-            ButtonImage(name: "button_y", button: Int32(AZ_BUTTON_Y))
+            ButtonImage(name: "button_y", button: Int32(AZ_BUTTON_Y), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.810, y: height * 0.620)
             
             // L Trigger - Position: (13, 0)
-            ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L))
-                .position(x: width * 0.013 + 40, y: height * 0.05)
+            ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.013 + triggerSize/2, y: height * 0.05)
             
             // R Trigger - Position: (895, 0)
-            ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R))
-                .position(x: width * 0.895 + 40, y: height * 0.05)
+            ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.895 + triggerSize/2, y: height * 0.05)
             
             // ZL Trigger - Position: (13, 110)
-            ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL))
-                .position(x: width * 0.013 + 40, y: height * 0.110 + 30)
+            ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.013 + triggerSize/2, y: height * 0.110 + triggerSize/2)
             
             // ZR Trigger - Position: (895, 110)
-            ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR))
-                .position(x: width * 0.895 + 40, y: height * 0.110 + 30)
+            ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.895 + triggerSize/2, y: height * 0.110 + triggerSize/2)
             
             // Center buttons
             HStack(spacing: 12) {
                 // Select - Position: (470, 850)
-                ButtonImage(name: "button_select", button: Int32(AZ_BUTTON_SELECT))
+                ButtonImage(name: "button_select", button: Int32(AZ_BUTTON_SELECT), size: centerButtonSize, opacity: settings.buttonOpacity)
                 
                 // Start - Position: (550, 850)
-                ButtonImage(name: "button_start", button: Int32(AZ_BUTTON_START))
+                ButtonImage(name: "button_start", button: Int32(AZ_BUTTON_START), size: centerButtonSize, opacity: settings.buttonOpacity)
             }
             .position(x: width * 0.510, y: height * 0.850)
         }
     }
     
-    private func portraitControls(width: CGFloat, height: CGFloat) -> some View {
+    private func portraitControls(
+        width: CGFloat,
+        height: CGFloat,
+        faceButtonSize: CGFloat,
+        dpadSize: CGFloat,
+        triggerSize: CGFloat,
+        joystickSize: CGFloat,
+        centerButtonSize: CGFloat
+    ) -> some View {
         ZStack {
             // D-Pad (left side) - Portrait Position: (10, 730)
-            DPadView()
-                .position(x: width * 0.010 + 60, y: height * 0.730)
+            DPadView(size: dpadSize)
+                .position(x: width * 0.010 + dpadSize/2, y: height * 0.730)
             
             // Left Analog Stick - Portrait Position: (80, 850)
             AnalogStickView(
@@ -117,7 +185,9 @@ struct TouchControlsView: View {
                     let nx = Float(x / 30)
                     let ny = Float(y / 30)
                     az_analog_event(Int32(AZ_STICK_LEFT), nx, ny)
-                }
+                },
+                size: joystickSize,
+                isCirclePad: true
             )
             .position(x: width * 0.080, y: height * 0.850)
             
@@ -128,52 +198,124 @@ struct TouchControlsView: View {
                     let nx = Float(x / 30)
                     let ny = Float(y / 30)
                     az_analog_event(Int32(AZ_STICK_C), nx, ny)
-                }
+                },
+                size: joystickSize,
+                isCirclePad: false
             )
             .position(x: width * 0.800, y: height * 0.720)
             
             // Face buttons - Portrait positions
             // Button A - Portrait: (810, 870)
-            ButtonImage(name: "button_a", button: Int32(AZ_BUTTON_A))
+            ButtonImage(name: "button_a", button: Int32(AZ_BUTTON_A), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.810, y: height * 0.870)
             
             // Button B - Portrait: (710, 925)
-            ButtonImage(name: "button_b", button: Int32(AZ_BUTTON_B))
+            ButtonImage(name: "button_b", button: Int32(AZ_BUTTON_B), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.710, y: height * 0.925)
             
             // Button X - Portrait: (710, 815)
-            ButtonImage(name: "button_x", button: Int32(AZ_BUTTON_X))
+            ButtonImage(name: "button_x", button: Int32(AZ_BUTTON_X), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.710, y: height * 0.815)
             
             // Button Y - Portrait: (610, 870)
-            ButtonImage(name: "button_y", button: Int32(AZ_BUTTON_Y))
+            ButtonImage(name: "button_y", button: Int32(AZ_BUTTON_Y), size: faceButtonSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.610, y: height * 0.870)
             
             // L Trigger - Portrait: (10, 640)
-            ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L))
-                .position(x: width * 0.010 + 40, y: height * 0.640)
+            ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.010 + triggerSize/2, y: height * 0.640)
             
             // R Trigger - Portrait: (810, 640)
-            ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R))
-                .position(x: width * 0.810 + 40, y: height * 0.640)
+            ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R), size: triggerSize, opacity: settings.buttonOpacity)
+                .position(x: width * 0.810 + triggerSize/2, y: height * 0.640)
             
             // ZL Trigger - Portrait: (210, 640)
-            ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL))
+            ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL), size: triggerSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.210, y: height * 0.640)
             
             // ZR Trigger - Portrait: (610, 640)
-            ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR))
+            ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR), size: triggerSize, opacity: settings.buttonOpacity)
                 .position(x: width * 0.610, y: height * 0.640)
             
             // Center buttons - Portrait
             HStack(spacing: 12) {
                 // Select - Portrait: (400, 794)
-                ButtonImage(name: "button_select", button: Int32(AZ_BUTTON_SELECT))
+                ButtonImage(name: "button_select", button: Int32(AZ_BUTTON_SELECT), size: centerButtonSize, opacity: settings.buttonOpacity)
                 
                 // Start - Portrait: (520, 794)
-                ButtonImage(name: "button_start", button: Int32(AZ_BUTTON_START))
+                ButtonImage(name: "button_start", button: Int32(AZ_BUTTON_START), size: centerButtonSize, opacity: settings.buttonOpacity)
             }
             .position(x: width * 0.460, y: height * 0.794)
+        }
+    }
+    
+    // Edit mode overlay for dragging/resizing buttons
+    private func editModeOverlay(geometry: GeometryProxy) -> some View {
+        VStack {
+            HStack {
+                Text("Edit Controls")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.blue.opacity(0.8), in: RoundedRectangle(cornerRadius: 8))
+                
+                Spacer()
+                
+                Button("Reset") {
+                    settings.resetToDefaults()
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
+                
+                Button("Done") {
+                    settings.isEditModeEnabled = false
+                    settings.save()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            
+            Spacer()
+            
+            // Scale sliders at bottom
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Face Buttons")
+                        .frame(width: 120, alignment: .leading)
+                    Slider(value: $settings.faceButtonScale, in: 0.3...1.5)
+                    Text(String(format: "%.0f%%", settings.faceButtonScale * 100))
+                        .frame(width: 50)
+                }
+                
+                HStack {
+                    Text("Triggers")
+                        .frame(width: 120, alignment: .leading)
+                    Slider(value: $settings.triggerScale, in: 0.3...1.5)
+                    Text(String(format: "%.0f%%", settings.triggerScale * 100))
+                        .frame(width: 50)
+                }
+                
+                HStack {
+                    Text("Joysticks")
+                        .frame(width: 120, alignment: .leading)
+                    Slider(value: $settings.joystickScale, in: 0.3...1.5)
+                    Text(String(format: "%.0f%%", settings.joystickScale * 100))
+                        .frame(width: 50)
+                }
+                
+                HStack {
+                    Text("Opacity")
+                        .frame(width: 120, alignment: .leading)
+                    Slider(value: $settings.buttonOpacity, in: 0.2...1.0)
+                    Text(String(format: "%.0f%%", settings.buttonOpacity * 100))
+                        .frame(width: 50)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.white)
+            .padding()
+            .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
+            .padding()
         }
     }
 }
@@ -182,13 +324,16 @@ struct TouchControlsView: View {
 struct ButtonImage: View {
     let name: String
     let button: Int32
+    let size: CGFloat
+    let opacity: CGFloat
     @State private var isPressed = false
     
     var body: some View {
         Image(isPressed ? "\(name)_pressed" : name, bundle: .main)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 70, height: 70)
+            .frame(width: size, height: size)
+            .opacity(opacity)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
@@ -205,19 +350,49 @@ struct ButtonImage: View {
     }
 }
 
-/// Virtual D-Pad using PNG assets
+/// Virtual D-Pad using PNG assets from Android
 struct DPadView: View {
+    let size: CGFloat
     @State private var currentDirection: Set<DPadDirection> = []
     
     var body: some View {
         ZStack {
-            // Base dpad image
-            Image(currentDirection.isEmpty ? "dpad" : 
-                  currentDirection.count == 2 ? "dpad_pressed_two_directions" : 
-                  "dpad_pressed_one_direction", bundle: .main)
+            // Base dpad image with proper Android asset
+            Image(imageName, bundle: .main)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 120, height: 120)
+                .frame(width: size, height: size)
+            
+            // Invisible hit zones for each direction
+            DPadHitZone(direction: .up, currentDirection: $currentDirection)
+                .frame(width: size * 0.33, height: size * 0.33)
+                .offset(y: -size * 0.33)
+            
+            DPadHitZone(direction: .down, currentDirection: $currentDirection)
+                .frame(width: size * 0.33, height: size * 0.33)
+                .offset(y: size * 0.33)
+            
+            DPadHitZone(direction: .left, currentDirection: $currentDirection)
+                .frame(width: size * 0.33, height: size * 0.33)
+                .offset(x: -size * 0.33)
+            
+            DPadHitZone(direction: .right, currentDirection: $currentDirection)
+                .frame(width: size * 0.33, height: size * 0.33)
+                .offset(x: size * 0.33)
+        }
+        .frame(width: size, height: size)
+    }
+    
+    private var imageName: String {
+        if currentDirection.isEmpty {
+            return "DPad"
+        } else if currentDirection.count == 2 {
+            return "DPadPressed2"
+        } else {
+            return "DPadPressed1"
+        }
+    }
+}
             
             // Invisible hit zones for each direction
             DPadHitZone(direction: .up, currentDirection: $currentDirection)
@@ -276,33 +451,50 @@ struct DPadHitZone: View {
     }
 }
 
-/// Virtual analog stick (circle-pad style)
+/// Virtual analog stick (circle-pad style) using Android assets
 struct AnalogStickView: View {
     @Binding var position: CGPoint
     let onPositionChanged: (CGFloat, CGFloat) -> Void
+    let size: CGFloat
+    let isCirclePad: Bool  // true for main stick, false for C-stick
     
     @State private var isDragging = false
     
-    private let baseSize: CGFloat = 100
-    private let knobSize: CGFloat = 50
-    private let maxRadius: CGFloat = 25
+    private let maxRadius: CGFloat
+    
+    init(position: Binding<CGPoint>, 
+         onPositionChanged: @escaping (CGFloat, CGFloat) -> Void,
+         size: CGFloat,
+         isCirclePad: Bool = true) {
+        self._position = position
+        self.onPositionChanged = onPositionChanged
+        self.size = size
+        self.isCirclePad = isCirclePad
+        self.maxRadius = size * 0.35  // Max travel distance
+    }
     
     var body: some View {
         ZStack {
-            // Base circle
-            Circle()
-                .fill(.white.opacity(0.2))
-                .frame(width: baseSize, height: baseSize)
+            // Range circle (background)
+            Image(isCirclePad ? "stick_main_range" : "stick_c_range", bundle: .main)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
             
-            // Knob
-            Circle()
-                .fill(.white.opacity(0.6))
-                .frame(width: knobSize, height: knobSize)
+            // Stick knob
+            Image(isDragging ? 
+                  (isCirclePad ? "stick_main_pressed" : "stick_c_pressed") :
+                  (isCirclePad ? "stick_main" : "stick_c"), 
+                  bundle: .main)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.5, height: size * 0.5)
                 .offset(x: position.x, y: position.y)
         }
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
+                    isDragging = true
                     let dx = value.translation.width
                     let dy = value.translation.height
                     let distance = sqrt(dx * dx + dy * dy)
@@ -314,6 +506,7 @@ struct AnalogStickView: View {
                     onPositionChanged(x, y)
                 }
                 .onEnded { _ in
+                    isDragging = false
                     position = .zero
                     onPositionChanged(0, 0)
                 }

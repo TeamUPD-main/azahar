@@ -1,0 +1,8 @@
+{
+  "images" : [
+    {"filename" : "stick_main.png", "idiom" : "universal", "scale" : "1x"},
+    {"filename" : "stick_main@2x.png", "idiom" : "universal", "scale" : "2x"},
+    {"filename" : "stick_main@3x.png", "idiom" : "universal", "scale" : "3x"}
+  ],
+  "info" : {"author" : "xcode", "version" : 1}
+}
