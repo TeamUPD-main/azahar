@@ -345,6 +345,11 @@ void Config::ReadValues() {
     // Web Service
     ReadSetting("WebService", Settings::values.web_api_url);
     ReadSetting("WebService", Settings::values.network_token);
+
+    // RetroAchievements
+    ReadSetting("RetroAchievements", Settings::values.retro_achievements_enabled);
+    ReadSetting("RetroAchievements", Settings::values.retro_achievements_username);
+    ReadSetting("RetroAchievements", Settings::values.retro_achievements_token);
 }
 
 void Config::Reload() {

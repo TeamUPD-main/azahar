@@ -1235,6 +1235,48 @@ public:
             ra_cached_user.score_softcore = user->score_softcore;
             ra_cached_user.token = ra_cached_token.c_str();
             ra_cached_user.avatar_url = ra_cached_avatar_url.c_str();
+            
+            // Save credentials to config for auto-login next time
+            Settings::values.retro_achievements_username = ra_cached_username;
+            Settings::values.retro_achievements_token = ra_cached_token;
+            
+            // Write to config file
+            const std::string config_path = FileUtil::GetUserPath(FileUtil::UserPath::ConfigDir) + "config.ini";
+            std::string ini_content;
+            FileUtil::ReadFileToString(true, config_path, ini_content);
+            
+            // Update or add the RetroAchievements credentials in the INI content
+            auto update_ini_value = [](std::string& content, const std::string& section, 
+                                       const std::string& key, const std::string& value) {
+                const std::string section_header = "[" + section + "]";
+                const std::string key_pattern = key + " =";
+                
+                size_t section_pos = content.find(section_header);
+                if (section_pos != std::string::npos) {
+                    // Find the key within this section
+                    size_t key_pos = content.find(key_pattern, section_pos);
+                    size_t next_section = content.find("\n[", section_pos + 1);
+                    
+                    // Check if key is within current section
+                    if (key_pos != std::string::npos && 
+                        (next_section == std::string::npos || key_pos < next_section)) {
+                        // Key exists, update its value
+                        size_t value_start = content.find("=", key_pos) + 1;
+                        size_t value_end = content.find("\n", value_start);
+                        content.replace(value_start, value_end - value_start, " " + value);
+                    } else {
+                        // Key doesn't exist, add it after section header
+                        size_t insert_pos = content.find("\n", section_pos) + 1;
+                        content.insert(insert_pos, key + " = " + value + "\n");
+                    }
+                }
+            };
+            
+            update_ini_value(ini_content, "RetroAchievements", "retro_achievements_username", ra_cached_username);
+            update_ini_value(ini_content, "RetroAchievements", "retro_achievements_token", ra_cached_token);
+            
+            FileUtil::WriteStringToFile(true, config_path, ini_content);
+            LOG_INFO(Frontend, "RetroAchievements credentials saved to config for auto-login");
         }
     }
 
@@ -1605,9 +1647,22 @@ void az_ra_fetch_image(const char* url, az_ra_image_callback callback) {
 }
 
 void az_ra_set_enabled(bool enabled) {
-    // Note: Settings value for retroachievements_enabled doesn't exist yet
-    // For now, this is a no-op. Enable/disable should be controlled via login/logout
-    LOG_INFO(Frontend, "RetroAchievements enabled: {}", enabled);
+    // When enabling RA, attempt auto-login with saved credentials if available
+    if (enabled) {
+        const std::string username = Settings::values.retro_achievements_username.GetValue();
+        const std::string token = Settings::values.retro_achievements_token.GetValue();
+        
+        if (!username.empty() && !token.empty()) {
+            LOG_INFO(Frontend, "Auto-logging in to RetroAchievements with saved token");
+            auto& system = Core::System::GetInstance();
+            auto& client = system.RetroAchievementsClient();
+            client.AttemptLoginWithToken(username.c_str(), token.c_str());
+        } else {
+            LOG_INFO(Frontend, "RetroAchievements enabled but no saved credentials found");
+        }
+    } else {
+        LOG_INFO(Frontend, "RetroAchievements disabled");
+    }
 }
 
 bool az_ra_is_enabled(void) {
