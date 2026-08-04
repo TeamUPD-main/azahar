@@ -45,8 +45,7 @@ bool EmuWindowIOS::OnSurfaceChanged(CAMetalLayer* layer) {
     window_info.render_surface = (__bridge void*)layer;
     
     if (layer && layer.device) {
-        LOG_DEBUG(Frontend, "[EmuWindowIOS] Metal device: {}", 
-                  [layer.device.name UTF8String]);
+        LOG_DEBUG(Frontend, "[EmuWindowIOS] Metal device attached");
     }
     
     OnFramebufferSizeChanged();
