@@ -171,8 +171,19 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
     }
 #elif defined(VK_USE_PLATFORM_METAL_EXT)
     if (window_info.type == Frontend::WindowSystemType::MacOS) {
+        const CAMetalLayer* metal_layer = static_cast<const CAMetalLayer*>(window_info.render_surface);
+        
+        // Validate Metal layer before creating Vulkan surface
+        if (!metal_layer) {
+            LOG_CRITICAL(Render_Vulkan, "CreateSurface: Metal layer is NULL!");
+            UNREACHABLE();
+        }
+        
+        LOG_INFO(Render_Vulkan, "CreateSurface: Metal layer valid at {}, creating Vulkan surface", 
+                 fmt::ptr(metal_layer));
+        
         const vk::MetalSurfaceCreateInfoEXT macos_ci = {
-            .pLayer = static_cast<const CAMetalLayer*>(window_info.render_surface),
+            .pLayer = metal_layer,
         };
 
         if ((res = instance.createMetalSurfaceEXT(&macos_ci, nullptr, &surface)) !=
@@ -181,6 +192,8 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
                          vk::to_string(res));
             UNREACHABLE();
         }
+        
+        LOG_INFO(Render_Vulkan, "Successfully created Vulkan Metal surface");
     }
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     if (window_info.type == Frontend::WindowSystemType::Android) {

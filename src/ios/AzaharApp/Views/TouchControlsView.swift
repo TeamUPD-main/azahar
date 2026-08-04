@@ -393,27 +393,6 @@ struct DPadView: View {
         }
     }
 }
-            
-            // Invisible hit zones for each direction
-            DPadHitZone(direction: .up, currentDirection: $currentDirection)
-                .frame(width: 40, height: 40)
-                .offset(y: -40)
-            
-            DPadHitZone(direction: .down, currentDirection: $currentDirection)
-                .frame(width: 40, height: 40)
-                .offset(y: 40)
-            
-            DPadHitZone(direction: .left, currentDirection: $currentDirection)
-                .frame(width: 40, height: 40)
-                .offset(x: -40)
-            
-            DPadHitZone(direction: .right, currentDirection: $currentDirection)
-                .frame(width: 40, height: 40)
-                .offset(x: 40)
-        }
-        .frame(width: 120, height: 120)
-    }
-}
 
 enum DPadDirection: Hashable {
     case up, down, left, right

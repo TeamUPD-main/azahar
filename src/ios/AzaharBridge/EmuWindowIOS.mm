@@ -27,15 +27,28 @@ void SetIOSPortraitMode(bool is_portrait) {
 bool EmuWindowIOS::OnSurfaceChanged(CAMetalLayer* layer) {
     const int temp_width = (layer == nullptr) ? 0 : static_cast<int>(layer.bounds.size.width);
     const int temp_height = (layer == nullptr) ? 0 : static_cast<int>(layer.bounds.size.height);
+    
     if (render_layer == layer && temp_width == static_cast<int>(window_width) &&
         temp_height == static_cast<int>(window_height)) {
+        LOG_DEBUG(Frontend, "[EmuWindowIOS] Surface unchanged ({}x{}), skipping update", 
+                  window_width, window_height);
         return false;
     }
+    
+    LOG_INFO(Frontend, "[EmuWindowIOS] Surface changed: {}x{} → {}x{}, layer={}", 
+             window_width, window_height, temp_width, temp_height, fmt::ptr(layer));
+    
     window_width = static_cast<unsigned>(std::max(temp_width, 0));
     window_height = static_cast<unsigned>(std::max(temp_height, 0));
     render_layer = layer;
     window_info.type = Frontend::WindowSystemType::MacOS;
     window_info.render_surface = (__bridge void*)layer;
+    
+    if (layer && layer.device) {
+        LOG_DEBUG(Frontend, "[EmuWindowIOS] Metal device: {}", 
+                  [layer.device.name UTF8String]);
+    }
+    
     OnFramebufferSizeChanged();
     return true;
 }
@@ -56,22 +69,27 @@ void EmuWindowIOS::OnTouchMoved(int x, int y) {
 
 void EmuWindowIOS::OnFramebufferSizeChanged() {
     const bool is_portrait_mode = g_is_portrait.load(std::memory_order_relaxed) && !is_secondary;
+    LOG_DEBUG(Frontend, "[EmuWindowIOS] Updating framebuffer layout: {}x{}, portrait={}, secondary={}", 
+              window_width, window_height, is_portrait_mode, is_secondary);
     UpdateCurrentFramebufferLayout(window_width, window_height, is_portrait_mode);
 }
 
 EmuWindowIOS::EmuWindowIOS(CAMetalLayer* layer, bool is_secondary)
     : EmuWindow{is_secondary}, host_layer(layer) {
-    LOG_DEBUG(Frontend, "Initializing EmuWindowIOS (secondary={})", is_secondary);
+    LOG_INFO(Frontend, "[EmuWindowIOS] Initializing (secondary={}, layer={})", 
+             is_secondary, fmt::ptr(layer));
     if (!layer) {
-        LOG_WARNING(Frontend, "CAMetalLayer is null, running headless");
+        LOG_WARNING(Frontend, "[EmuWindowIOS] CAMetalLayer is null, running headless");
         return;
     }
     window_width = static_cast<unsigned>(layer.bounds.size.width);
     window_height = static_cast<unsigned>(layer.bounds.size.height);
+    LOG_INFO(Frontend, "[EmuWindowIOS] Initial dimensions: {}x{}", window_width, window_height);
     OnSurfaceChanged(layer);
 }
 
 EmuWindowIOS::~EmuWindowIOS() {
+    LOG_INFO(Frontend, "[EmuWindowIOS] Destroying window (secondary={})", is_secondary);
     DestroyWindowSurface();
 }
 
