@@ -317,7 +317,7 @@ struct SystemFilesDownloaderView: View {
                 // Try downloading with retries
                 var success = false
                 for attempt in 0..<3 {
-                    let result = az_download_title_from_nus(titleId)
+                    let result = az_download_title_from_nus(UInt64(bitPattern: titleId))
                     if result == 0 {
                         success = true
                         print("[NUS] Successfully downloaded title \(String(format: "%016llX", titleId))")
