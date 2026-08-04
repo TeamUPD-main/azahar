@@ -14,13 +14,6 @@ struct MetalView: UIViewRepresentable {
     func makeUIView(context: Context) -> MetalViewUIView {
         AppLogger.info("[MetalView] Creating MetalViewUIView")
         let view = MetalViewUIView(viewModel: viewModel)
-        
-        // CRITICAL FIX: Start presenting immediately after creation
-        DispatchQueue.main.async {
-            AppLogger.info("[MetalView] Calling startPresenting()")
-            view.startPresenting()
-        }
-        
         return view
     }
 
@@ -70,7 +63,12 @@ final class MetalViewUIView: UIView {
         metalLayer.contentsScale = UIScreen.main.scale
         metalLayer.drawableSize = bounds.size
 
-        if isSurfaceSet {
+        // Start presenting after first layout when we have valid dimensions
+        if !isSurfaceSet && bounds.size.width > 0 && bounds.size.height > 0 {
+            AppLogger.info("[MetalView] layoutSubviews with valid bounds: \(bounds) - calling startPresenting()")
+            startPresenting()
+        } else if isSurfaceSet {
+            // Update existing surface with new dimensions
             let scale = Float(UIScreen.main.scale)
             az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), scale)
             let portrait = bounds.height > bounds.width
