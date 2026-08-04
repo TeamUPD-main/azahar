@@ -146,11 +146,23 @@ final class AppState: ObservableObject {
     }
 
     func launchGame(_ game: Game) {
+        AppLogger.info("=== LAUNCHING GAME ===")
+        AppLogger.gameOperation("User tapped game", path: game.path, titleId: game.titleId)
+        AppLogger.info("Game title: \(game.title)")
+        AppLogger.info("Media type: \(game.mediaType)")
+        AppLogger.stateChange("AppState", from: "idle", to: "launching")
+        
         currentGame = game
         isEmulating = true
+        
+        AppLogger.info("AppState.currentGame set")
+        AppLogger.info("AppState.isEmulating = true")
     }
     
     func launchHomeMenu() {
+        AppLogger.info("=== LAUNCHING HOME MENU ===")
+        AppLogger.gameOperation("User launched Home Menu")
+        
         // Create a special "game" entry for Home Menu
         currentGame = Game(
             path: "", // Empty path signals Home Menu boot
@@ -159,11 +171,16 @@ final class AppState: ObservableObject {
             mediaType: Int32(AZ_MEDIA_TYPE_NAND)
         )
         isEmulating = true
+        
+        AppLogger.info("Home Menu currentGame created")
+        AppLogger.info("AppState.isEmulating = true")
     }
 
     func stopEmulation() {
+        AppLogger.info("=== STOPPING EMULATION ===")
         az_stop_emulation()
         isEmulating = false
         currentGame = nil
+        AppLogger.stateChange("AppState", from: "emulating", to: "idle")
     }
 }

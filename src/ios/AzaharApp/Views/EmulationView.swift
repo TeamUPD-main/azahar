@@ -19,6 +19,9 @@ struct EmulationView: View {
     init(game: Game) {
         self.game = game
         _viewModel = StateObject(wrappedValue: EmulationViewModel(game: game))
+        
+        AppLogger.info("=== EMULATION VIEW INITIALIZED ===")
+        AppLogger.gameOperation("EmulationView created", path: game.path, titleId: game.titleId)
     }
 
     var body: some View {

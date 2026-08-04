@@ -92,6 +92,8 @@ struct GameListView: View {
                     Section {
                         ForEach(filteredGames) { game in
                             Button {
+                                AppLogger.userAction("Selected game", details: game.title)
+                                AppLogger.info("Game path: \(game.path)")
                                 appState.launchGame(game)
                             } label: {
                                 GameRowView(game: game)

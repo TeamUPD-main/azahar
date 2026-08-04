@@ -30,17 +30,30 @@ final class EmulationViewModel: ObservableObject {
     }
 
     func startEmulation() {
-        guard !isRunning else { return }
+        guard !isRunning else { 
+            AppLogger.debug("startEmulation() called but already running, ignoring")
+            return 
+        }
+        
+        AppLogger.info("=== EMULATION VIEW MODEL START ===")
+        AppLogger.gameOperation("Starting emulation", path: game.path, titleId: game.titleId)
+        
         isLoading = true
         isRunning = true
         isPaused = false
 
+        AppLogger.debug("isLoading = true, isRunning = true, isPaused = false")
+
         // Resolve launch path. Empty path means boot to Home Menu.
         let path: String
         if game.path.isEmpty {
+            AppLogger.info("Empty game path detected, loading Home Menu")
             let region = Int32(az_setting_get_int("System", "region_value", 0))
+            AppLogger.debug("System region: \(region)")
             path = String(cString: az_get_home_menu_path(region))
+            AppLogger.info("Home Menu path resolved: \(path)")
             if path.isEmpty {
+                AppLogger.error("Home Menu", message: "Home Menu not installed for region \(region)")
                 isRunning = false
                 isLoading = false
                 gameTitle = "Home Menu not installed"
@@ -48,26 +61,57 @@ final class EmulationViewModel: ObservableObject {
             }
         } else {
             path = game.path
+            AppLogger.info("Using game path: \(path)")
+        }
+        
+        // Check if file exists
+        let fileExists = FileManager.default.fileExists(atPath: path)
+        AppLogger.info("File exists check: \(fileExists)")
+        if !fileExists {
+            AppLogger.error("ROM Loading", message: "File does not exist at path: \(path)")
         }
 
+        AppLogger.info("Creating emulation thread...")
         emulationThread = Task.detached(priority: .userInitiated) {
+            AppLogger.info("Emulation thread started")
+            
             // Wait until surface is set. 
-            // In a production app, use a proper ConditionVariable or async stream.
-            // For now, poll briefly.
+            AppLogger.debug("Waiting for Metal surface to be ready...")
+            var waitCount = 0
             while !az_is_surface_set() {
+                waitCount += 1
+                if waitCount % 10 == 0 {
+                    AppLogger.debug("Still waiting for surface... (\(waitCount * 100)ms)")
+                }
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                
+                if waitCount > 50 { // 5 second timeout
+                    AppLogger.error("Emulation", message: "Timeout waiting for Metal surface!")
+                    await MainActor.run {
+                        self.isRunning = false
+                        self.isLoading = false
+                    }
+                    return
+                }
             }
+            AppLogger.info("Metal surface is ready!")
 
             // Hide loading screen after a brief delay (allows icon to display)
+            AppLogger.debug("Waiting 500ms for loading screen display...")
             try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
             await MainActor.run {
                 self.isLoading = false
+                AppLogger.debug("isLoading = false (loading screen hidden)")
             }
 
+            AppLogger.info("Calling az_run(\(path))")
+            AppLogger.info(">>> ENTERING C++ CORE <<<")
             az_run(path)
+            AppLogger.info(">>> RETURNED FROM C++ CORE <<<")
 
             await MainActor.run {
                 self.isRunning = false
+                AppLogger.info("Emulation ended, isRunning = false")
             }
         }
 
@@ -77,6 +121,8 @@ final class EmulationViewModel: ObservableObject {
                 self?.updatePerfStats()
             }
         }
+        
+        AppLogger.info("Performance stats timer started")
     }
 
     func stop() {

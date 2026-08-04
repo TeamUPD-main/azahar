@@ -5,37 +5,39 @@
 import Foundation
 import SwiftUI
 
-/// Comprehensive logging utility for Swift UI lifecycle and app events
-/// Logs to both Xcode console and the C++ logging system
+/// Comprehensive logging utility that connects to Azahar's C++ logging system
+/// All logs go to Documents/Azahar/log/azahar_log.txt
 enum AppLogger {
     
-    private static var isAllLoggingEnabled: Bool {
-        let level = UserDefaults.standard.integer(forKey: "Debugging_log_filter_level")
-        return level == -1 || level == 0
+    private static var isExperimentalLoggingEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "Debugging_experimental_logging")
     }
     
     /// Log view lifecycle events (onAppear, onDisappear)
     static func viewLifecycle(_ viewName: String, event: String) {
-        guard isAllLoggingEnabled else { return }
         let message = "[UI] \(viewName): \(event)"
         print(message)
-        az_log_info(message)
+        if isExperimentalLoggingEnabled {
+            logToCore(message, level: .info)
+        }
     }
     
     /// Log navigation events
     static func navigation(from: String, to: String) {
-        guard isAllLoggingEnabled else { return }
         let message = "[Navigation] \(from) -> \(to)"
         print(message)
-        az_log_info(message)
+        if isExperimentalLoggingEnabled {
+            logToCore(message, level: .info)
+        }
     }
     
     /// Log user actions
     static func userAction(_ action: String, details: String = "") {
-        guard isAllLoggingEnabled else { return }
         let message = details.isEmpty ? "[Action] \(action)" : "[Action] \(action): \(details)"
         print(message)
-        az_log_info(message)
+        if isExperimentalLoggingEnabled {
+            logToCore(message, level: .info)
+        }
     }
     
     /// Log ROM/game operations
@@ -44,64 +46,72 @@ enum AppLogger {
         let pathStr = !path.isEmpty ? " Path: \(path)" : ""
         let message = "[Game] \(operation)\(titleStr)\(pathStr)"
         print(message)
-        az_log_info(message)
+        logToCore(message, level: .info)  // Always log game operations
     }
     
     /// Log errors with full context
     static func error(_ context: String, error: Error) {
         let message = "[Error] \(context): \(error.localizedDescription)"
         print(message)
-        az_log_error(message)
+        logToCore(message, level: .error)  // Always log errors
     }
     
     /// Log errors with custom message
     static func error(_ context: String, message: String) {
         let msg = "[Error] \(context): \(message)"
         print(msg)
-        az_log_error(msg)
+        logToCore(msg, level: .error)  // Always log errors
     }
     
     /// Log state changes
     static func stateChange(_ component: String, from: String, to: String) {
-        guard isAllLoggingEnabled else { return }
         let message = "[State] \(component): \(from) -> \(to)"
         print(message)
-        az_log_info(message)
+        if isExperimentalLoggingEnabled {
+            logToCore(message, level: .info)
+        }
     }
     
-    /// Log generic info
+    /// Log generic info (always logged)
     static func info(_ message: String) {
-        print("[Info] \(message)")
-        az_log_info(message)
+        let msg = "[Info] \(message)"
+        print(msg)
+        logToCore(msg, level: .info)
     }
     
-    /// Log debug info (only when All or Trace/Debug is enabled)
+    /// Log debug info (only with experimental logging)
     static func debug(_ message: String) {
-        guard isAllLoggingEnabled else { return }
-        print("[Debug] \(message)")
-        az_log_debug(message)
+        let msg = "[Debug] \(message)"
+        print(msg)
+        if isExperimentalLoggingEnabled {
+            logToCore(msg, level: .debug)
+        }
+    }
+    
+    /// Log critical errors (always logged)
+    static func critical(_ context: String, message: String) {
+        let msg = "[Critical] \(context): \(message)"
+        print(msg)
+        logToCore(msg, level: .critical)
+    }
+    
+    // MARK: - Private
+    
+    private enum LogLevel: Int32 {
+        case info = 0
+        case debug = 1
+        case warning = 2
+        case error = 3
+        case critical = 4
+    }
+    
+    private static func logToCore(_ message: String, level: LogLevel) {
+        message.withCString { ptr in
+            az_log_message(level.rawValue, ptr)
+        }
     }
 }
 
-// Helper bridge functions for logging from Swift
-private func az_log_info(_ message: String) {
-    message.withCString { ptr in
-        az_log_message(0, ptr) // 0 = Info level
-    }
-}
-
-private func az_log_debug(_ message: String) {
-    message.withCString { ptr in
-        az_log_message(1, ptr) // 1 = Debug level
-    }
-}
-
-private func az_log_error(_ message: String) {
-    message.withCString { ptr in
-        az_log_message(4, ptr) // 4 = Error level
-    }
-}
-
-// C bridge function declarations
+// C bridge function declaration
 @_silgen_name("az_log_message")
 private func az_log_message(_ level: Int32, _ message: UnsafePointer<CChar>)

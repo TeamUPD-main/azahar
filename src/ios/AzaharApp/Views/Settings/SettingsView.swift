@@ -219,14 +219,19 @@ struct SettingsView: View {
                         Label("View Logs", systemImage: "doc.text.magnifyingglass")
                     }
                     
+                    SettingToggle(
+                        title: "Experimental Logging",
+                        description: "Log ALL Swift UI events, navigation, and actions to log file",
+                        group: "Debugging", key: "experimental_logging"
+                    )
+                    
                     SettingToggle(title: "Renderer Debug", group: "Debugging", key: "renderer_debug")
                     SettingToggle(title: "Frame Time Recording", group: "Debugging", key: "record_frame_times")
                     
                     SettingPicker(
-                        title: "Log Level",
+                        title: "C++ Log Level",
                         group: "Debugging", key: "log_filter_level",
                         options: [
-                            (-1, "All (Everything)"),
                             (0, "Trace"),
                             (1, "Debug"),
                             (2, "Info"),
@@ -248,7 +253,7 @@ struct SettingsView: View {
                         group: "Debugging", key: "log_stack_trace"
                     )
                     
-                    Text("View logs to debug game loading and other issues")
+                    Text("Experimental Logging captures every UI interaction and navigation event. Game operations and errors are always logged.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
