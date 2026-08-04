@@ -286,7 +286,7 @@ struct PauseMenuView: View {
         }
         .transition(.opacity)
         .sheet(isPresented: $showCheatsView) {
-            CheatsView(gamePath: viewModel.game.path)
+            CheatsView()
         }
         .sheet(isPresented: $showSettingsView) {
             PerGameSettingsView(game: viewModel.game)

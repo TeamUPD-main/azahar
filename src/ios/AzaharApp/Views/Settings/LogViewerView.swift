@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 import SwiftUI
+import Combine
 
 /// Log viewer for debugging game loading and runtime issues
 struct LogViewerView: View {

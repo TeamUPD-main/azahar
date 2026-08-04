@@ -53,7 +53,7 @@ class CompatibilityManager {
         guard let url = Bundle.main.url(forResource: "compatibility_list", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            AppLogger.warning("Failed to load compatibility_list.json")
+            AppLogger.error("CompatibilityManager", message: "Failed to load compatibility_list.json")
             return
         }
         

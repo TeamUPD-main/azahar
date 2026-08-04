@@ -46,7 +46,7 @@ struct TouchControlSettings: Codable {
     }
     
     func resetToDefaults() {
-        var settings = TouchControlSettings()
+        let settings = TouchControlSettings()
         settings.save()
     }
     
