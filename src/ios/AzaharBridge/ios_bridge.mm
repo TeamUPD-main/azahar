@@ -179,74 +179,104 @@ void az_set_on_mii_request(az_on_mii_request_fn fn) { on_mii_request = fn; }
 static void RunCitra(const std::string& filepath) {
     std::scoped_lock lock(running_mutex);
 
+    LOG_INFO(Frontend, "==================== Starting ROM Load ====================");
+    LOG_INFO(Frontend, "ROM path: {}", filepath);
+    LOG_INFO(Frontend, "File exists: {}", FileUtil::Exists(filepath) ? "YES" : "NO");
+    if (FileUtil::Exists(filepath)) {
+        LOG_INFO(Frontend, "File size: {} bytes", FileUtil::GetSize(filepath));
+    }
+
     Core::System& system = Core::System::GetInstance();
 
     if (!inserted_cartridge.empty()) {
+        LOG_INFO(Frontend, "Inserting cartridge: {}", inserted_cartridge);
         system.InsertCartridge(inserted_cartridge);
     }
 
     // Create windows — Vulkan path (iOS always uses Vulkan via MoltenVK)
+    LOG_DEBUG(Frontend, "Creating EmuWindow for iOS (Vulkan/MoltenVK)");
     window = CreateEmuWindow(pending_primary_layer, false);
     secondary_window = CreateEmuWindow(pending_secondary_layer, true);
 
     if (!window) {
-        LOG_CRITICAL(Frontend, "Failed to create EmuWindowIOS");
+        LOG_CRITICAL(Frontend, "Failed to create EmuWindowIOS - window is NULL");
         last_result.store(AZ_CORE_ERROR_UNKNOWN);
         return;
     }
+    LOG_INFO(Frontend, "EmuWindow created successfully");
 
     // Load config
+    LOG_DEBUG(Frontend, "Loading configuration");
     Config config;
 
+    LOG_DEBUG(Frontend, "Setting current ROM path");
     FileUtil::SetCurrentRomPath(filepath);
+    
+    LOG_INFO(Frontend, "Getting loader for ROM: {}", filepath);
     auto loader = Loader::GetLoader(filepath);
     if (!loader) {
-        LOG_CRITICAL(Frontend, "Failed to load ROM: {}", filepath);
+        LOG_CRITICAL(Frontend, "Failed to get loader for ROM: {}", filepath);
+        LOG_CRITICAL(Frontend, "Possible causes: Invalid format, corrupt file, or unsupported type");
         last_result.store(AZ_CORE_ERROR_GET_LOADER);
         return;
     }
+    LOG_INFO(Frontend, "Loader obtained successfully");
 
     // Read program ID
     u64 title_id = 0;
     loader->ReadProgramId(title_id);
+    LOG_INFO(Frontend, "Program ID: {:016X}", title_id);
     system.RegisterAppLoaderEarly(loader);
 
     // Apply settings
+    LOG_DEBUG(Frontend, "Applying system settings");
     system.ApplySettings();
 
     // Register applets
+    LOG_DEBUG(Frontend, "Registering default applets");
     Frontend::RegisterDefaultApplets(system);
 
     // Register iOS camera factory and applets
+    LOG_DEBUG(Frontend, "Registering iOS-specific factories");
     Camera::RegisterFactory("ios", std::make_unique<Camera::IOS::Factory>());
     system.RegisterMiiSelector(std::make_shared<MiiSelector::IOSMiiSelector>());
     system.RegisterSoftwareKeyboard(std::make_shared<SoftwareKeyboard::IOSKeyboard>());
     system.RegisterMicPermissionCheck(&CheckMicPermission);
 
     // Register input
+    LOG_DEBUG(Frontend, "Initializing input manager");
     InputManager::Init();
 
     // Load the game (critical: must be called before RunLoop!)
+    LOG_INFO(Frontend, "Making rendering context current");
     window->MakeCurrent();
+    
+    LOG_INFO(Frontend, "Loading game into core system...");
     const Core::System::ResultStatus load_result = 
         system.Load(*window, filepath, secondary_window.get());
     
     if (load_result != Core::System::ResultStatus::Success) {
-        LOG_CRITICAL(Frontend, "Failed to load game: {}", static_cast<u32>(load_result));
+        LOG_CRITICAL(Frontend, "Failed to load game with result: {}", static_cast<u32>(load_result));
+        LOG_CRITICAL(Frontend, "Result status code: {}", Core::System::GetResultStatusString(load_result));
+        LOG_CRITICAL(Frontend, "Status details: {}", system.GetStatusDetails());
         last_result.store(static_cast<int>(load_result));
         return;
     }
+    LOG_INFO(Frontend, "Game loaded successfully!");
 
     stop_run = false;
     pause_emulation = false;
 
     // Load disk cache (shader cache, etc.)
-    // Note: iOS doesn't have a progress callback yet, but the cache still loads
+    LOG_INFO(Frontend, "Loading disk cache for title ID {:016X}", title_id);
     system.GPU().ApplyPerProgramSettings(title_id);
+    LOG_DEBUG(Frontend, "Loading shader cache and disk resources...");
     system.GPU().Renderer().Rasterizer()->LoadDefaultDiskResources(stop_run, nullptr);
+    LOG_INFO(Frontend, "Disk cache loaded");
 
     SCOPE_EXIT({ TryShutdown(); });
 
+    LOG_INFO(Frontend, "==================== Starting Emulation Loop ====================");
     // Run the emulation loop
     while (!stop_run) {
         if (!pause_emulation) {
@@ -255,11 +285,13 @@ static void RunCitra(const std::string& filepath) {
                 continue;
             }
             if (result == Core::System::ResultStatus::ShutdownRequested) {
+                LOG_INFO(Frontend, "Shutdown requested by system");
                 last_result.store(static_cast<int>(result));
                 return;
             } else {
                 // Core error occurred
                 LOG_ERROR(Frontend, "Core error during RunLoop: {}", static_cast<u32>(result));
+                LOG_ERROR(Frontend, "Error details: {}", system.GetStatusDetails());
                 last_result.store(static_cast<int>(result));
                 // TODO: Call error handler callback if set
                 return;
@@ -271,6 +303,7 @@ static void RunCitra(const std::string& filepath) {
         }
     }
 
+    LOG_INFO(Frontend, "Emulation loop exited normally");
     last_result.store(AZ_CORE_ERROR_SUCCESS);
 }
 
@@ -302,7 +335,10 @@ int az_get_last_result(void) {
 }
 
 void az_run(const char* path) {
-    if (!path) return;
+    if (!path) {
+        LOG_ERROR(Frontend, "az_run: path is NULL!");
+        return;
+    }
     
     // Safety Guard: Ensure surface is ready
     if (!pending_primary_layer) {
@@ -310,11 +346,15 @@ void az_run(const char* path) {
         return;
     }
     
-    LOG_INFO(Frontend, "az_run: Path: {}", path);
+    LOG_INFO(Frontend, "az_run called with path: {}", path);
+    LOG_INFO(Frontend, "Surface ready: {}", pending_primary_layer ? "YES" : "NO");
     
     pending_rom_path = path;
     last_result.store(AZ_CORE_ERROR_UNKNOWN);
     RunCitra(pending_rom_path);
+    
+    const int result = last_result.load();
+    LOG_INFO(Frontend, "az_run completed with result code: {}", result);
 }
 
 void az_pause_emulation(void) {
@@ -995,6 +1035,67 @@ bool az_system_files_region_available(int region) {
     // Check if the home menu for this region exists
     const std::string home_menu_path = Core::GetHomeMenuNcchPath(region);
     return FileUtil::Exists(home_menu_path);
+}
+
+bool az_shared_font_available(void) {
+    // Check if any shared font is installed (JPN, EUR, USA, CHN, KOR, TWN)
+    const u64 shared_font_title_ids[] = {
+        0x0004009B00014002, // JPN/EUR/USA
+        0x0004009B00014102, // CHN
+        0x0004009B00014202, // KOR
+        0x0004009B00014302  // TWN
+    };
+    
+    for (u64 title_id : shared_font_title_ids) {
+        std::string path = Service::AM::GetTitlePath(Service::FS::MediaType::NAND, title_id) + "content/00000000.app";
+        if (FileUtil::Exists(path)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool az_bad_word_list_available(void) {
+    // Bad word list title ID: 0x000400DB00010302
+    std::string path = Service::AM::GetTitlePath(Service::FS::MediaType::NAND, 0x000400DB00010302) + "content/00000000.app";
+    return FileUtil::Exists(path);
+}
+
+bool az_region_manifest_available(void) {
+    // Region manifest title ID: 0x0004009B00010402
+    std::string path = Service::AM::GetTitlePath(Service::FS::MediaType::NAND, 0x0004009B00010402) + "content/00000000.app";
+    return FileUtil::Exists(path);
+}
+
+bool az_home_menu_available(void) {
+    // Check if any region's Home Menu is installed
+    for (u32 region = 0; region < Core::NUM_SYSTEM_TITLE_REGIONS; region++) {
+        const std::string home_menu_path = Core::GetHomeMenuNcchPath(region);
+        if (FileUtil::Exists(home_menu_path)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool az_mii_maker_available(void) {
+    // Mii Maker title IDs by region
+    const u64 mii_maker_title_ids[] = {
+        0x0004001000020000, // JPN
+        0x0004001000020100, // USA
+        0x0004001000020200, // EUR
+        0x0004001000020300, // CHN
+        0x0004001000020400, // KOR
+        0x0004001000020500  // TWN
+    };
+    
+    for (u64 title_id : mii_maker_title_ids) {
+        std::string path = Service::AM::GetTitlePath(Service::FS::MediaType::NAND, title_id) + "content/00000000.app";
+        if (FileUtil::Exists(path)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ---------------------------------------------------------------------------

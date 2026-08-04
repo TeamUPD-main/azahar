@@ -90,8 +90,13 @@ struct SystemFilesView: View {
                         HStack {
                             Label(archive.displayName, systemImage: archive.icon)
                             Spacer()
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                            if archive.isInstalled {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.red)
+                            }
                         }
                     }
                 }
@@ -303,6 +308,16 @@ enum SystemArchiveType: String, CaseIterable, Identifiable {
         case .region: return "globe"
         case .homeMenu: return "house"
         case .miiMaker: return "person.circle"
+        }
+    }
+    
+    var isInstalled: Bool {
+        switch self {
+        case .sharedFont: return az_shared_font_available()
+        case .badWordList: return az_bad_word_list_available()
+        case .region: return az_region_manifest_available()
+        case .homeMenu: return az_home_menu_available()
+        case .miiMaker: return az_mii_maker_available()
         }
     }
 }

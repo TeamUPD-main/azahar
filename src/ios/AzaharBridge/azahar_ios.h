@@ -457,6 +457,13 @@ bool az_system_files_available(void);
 /// Get system file status for a region (0=JPN, 1=USA, 2=EUR, etc)
 bool az_system_files_region_available(int region);
 
+/// Check if specific system archives exist
+bool az_shared_font_available(void);
+bool az_bad_word_list_available(void);
+bool az_region_manifest_available(void);
+bool az_home_menu_available(void);
+bool az_mii_maker_available(void);
+
 // ---------------------------------------------------------------------------
 // RetroAchievements
 // ---------------------------------------------------------------------------
