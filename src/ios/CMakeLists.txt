@@ -45,8 +45,9 @@ target_link_libraries(azahar_ios PRIVATE
     citra_common citra_core video_core audio_core input_common network inih
 )
 
-# Define IOS preprocessor macro so C++ code can detect iOS platform
-target_compile_definitions(azahar_ios PUBLIC IOS)
+# Define CITRA_IOS preprocessor macro so C++ code can detect iOS platform
+# (Can't use just "IOS" as it conflicts with Camera::IOS namespace)
+target_compile_definitions(azahar_ios PUBLIC CITRA_IOS)
 
 # ObjC++ files need ARC and the ObjC++ standard
 set_target_properties(azahar_ios PROPERTIES
@@ -217,8 +218,8 @@ endif()
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
 
-# Ensure IOS preprocessor macro is available to all linked targets
-target_compile_definitions(azahar_ios_app PRIVATE IOS)
+# Ensure CITRA_IOS preprocessor macro is available to all linked targets
+target_compile_definitions(azahar_ios_app PRIVATE CITRA_IOS)
 
 # Add WhatsNew.json and compatibility_list.json as bundle resources
 set_source_files_properties(
@@ -239,9 +240,20 @@ set_source_files_properties(
 )
 target_sources(azahar_ios_app PRIVATE ${BUTTON_ASSETS})
 
-# MoltenVK is statically linked into the iOS executable at build time via
-# the main CMakeLists.txt (line 434), so no separate dylib bundling is needed.
-# The static library path is: externals/MoltenVK/MoltenVK/static/MoltenVK.xcframework/ios-arm64/libMoltenVK.a
+# Bundle MoltenVK framework into the iOS app
+# The framework will be copied to Azahar.app/Frameworks/MoltenVK.framework
+if (ENABLE_VULKAN)
+    set(MOLTENVK_FRAMEWORK "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/MoltenVK.xcframework/ios-arm64/MoltenVK.framework")
+    if (EXISTS "${MOLTENVK_FRAMEWORK}")
+        set_target_properties(azahar_ios_app PROPERTIES
+            XCODE_EMBED_FRAMEWORKS "${MOLTENVK_FRAMEWORK}"
+            XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY YES
+        )
+        message(STATUS "MoltenVK framework will be embedded in iOS app bundle")
+    else()
+        message(WARNING "MoltenVK framework not found at ${MOLTENVK_FRAMEWORK}")
+    endif()
+endif()
 
 # ---------------------------------------------------------------------------
 # Code signing for on-device deployment (generator-agnostic).
