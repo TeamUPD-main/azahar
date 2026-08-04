@@ -415,7 +415,7 @@ void az_emu_surface_set(void* metal_layer, float scale) {
         const int width = static_cast<int>(layer.bounds.size.width * scale);
         const int height = static_cast<int>(layer.bounds.size.height * scale);
         LOG_INFO(Frontend, "az_emu_surface_set: layer={}, dimensions={}x{}, scale={}", 
-                 static_cast<const void*>(layer), width, height, scale);
+                 (__bridge void*)layer, width, height, scale);
         
         // Verify Metal layer is valid before proceeding
         if (width <= 0 || height <= 0) {
