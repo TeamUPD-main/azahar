@@ -107,10 +107,19 @@ std::shared_ptr<Common::DynamicLibrary> OpenLibrary(
     auto library = std::make_shared<Common::DynamicLibrary>();
 #ifdef __APPLE__
     const std::string filename = Common::DynamicLibrary::GetLibraryName("vulkan");
+    LOG_INFO(Render_Vulkan, "Attempting to load Vulkan library: {}", filename);
     if (!library->Load(filename)) {
+        LOG_WARNING(Render_Vulkan, "Failed to load {}, falling back to MoltenVK", filename);
         // Fall back to directly loading bundled MoltenVK library.
         const std::string mvk_filename = Common::DynamicLibrary::GetLibraryName("MoltenVK");
-        void(library->Load(mvk_filename));
+        LOG_INFO(Render_Vulkan, "Attempting to load MoltenVK library: {}", mvk_filename);
+        if (library->Load(mvk_filename)) {
+            LOG_INFO(Render_Vulkan, "Successfully loaded MoltenVK library");
+        } else {
+            LOG_ERROR(Render_Vulkan, "Failed to load MoltenVK library: {}", mvk_filename);
+        }
+    } else {
+        LOG_INFO(Render_Vulkan, "Successfully loaded Vulkan library: {}", filename);
     }
 #else
     std::string filename = Common::DynamicLibrary::GetLibraryName("vulkan", 1);
@@ -301,28 +310,46 @@ vk::InstanceCreateFlags GetInstanceFlags() {
 vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
                                   Frontend::WindowSystemType window_type, bool enable_validation,
                                   bool dump_command_buffers) {
+    LOG_INFO(Render_Vulkan, "CreateInstance called: window_type={}, validation={}, dump_buffers={}",
+             static_cast<int>(window_type), enable_validation, dump_command_buffers);
+    
     if (!library.IsLoaded()) {
+        LOG_ERROR(Render_Vulkan, "Vulkan library is not loaded!");
         throw std::runtime_error("Failed to load Vulkan driver library");
     }
+    LOG_INFO(Render_Vulkan, "Vulkan library loaded successfully");
 
     const auto vkGetInstanceProcAddr =
         library.GetSymbol<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     if (!vkGetInstanceProcAddr) {
+        LOG_ERROR(Render_Vulkan, "Failed to get vkGetInstanceProcAddr symbol");
         throw std::runtime_error("Failed GetSymbol vkGetInstanceProcAddr");
     }
+    LOG_INFO(Render_Vulkan, "vkGetInstanceProcAddr symbol obtained");
+    
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+    LOG_INFO(Render_Vulkan, "VULKAN_HPP_DEFAULT_DISPATCHER initialized");
 
     const u32 available_version = VULKAN_HPP_DEFAULT_DISPATCHER.vkEnumerateInstanceVersion
                                       ? vk::enumerateInstanceVersion()
                                       : VK_API_VERSION_1_0;
+    LOG_INFO(Render_Vulkan, "Available Vulkan version: {}.{}.{}", 
+             VK_VERSION_MAJOR(available_version), VK_VERSION_MINOR(available_version), 
+             VK_VERSION_PATCH(available_version));
+    
     if (available_version < TargetVulkanApiVersion) {
+        LOG_ERROR(Render_Vulkan, "Vulkan version insufficient: required {}.{}, have {}.{}",
+                  VK_VERSION_MAJOR(TargetVulkanApiVersion), VK_VERSION_MINOR(TargetVulkanApiVersion),
+                  VK_VERSION_MAJOR(available_version), VK_VERSION_MINOR(available_version));
         throw std::runtime_error(fmt::format(
             "Vulkan {}.{} is required, but only {}.{} is supported by instance!",
             VK_VERSION_MAJOR(TargetVulkanApiVersion), VK_VERSION_MINOR(TargetVulkanApiVersion),
             VK_VERSION_MAJOR(available_version), VK_VERSION_MINOR(available_version)));
     }
 
+    LOG_INFO(Render_Vulkan, "Getting instance extensions...");
     const auto extensions = GetInstanceExtensions(window_type, enable_validation);
+    LOG_INFO(Render_Vulkan, "Required extensions: {}", fmt::join(extensions, ", "));
 
     const vk::ApplicationInfo application_info = {
         .pApplicationName = "Citra",
@@ -335,13 +362,18 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
     boost::container::static_vector<const char*, 2> layers;
     if (enable_validation) {
         layers.push_back("VK_LAYER_KHRONOS_validation");
+        LOG_INFO(Render_Vulkan, "Validation layer enabled");
     }
     if (dump_command_buffers) {
         layers.push_back("VK_LAYER_LUNARG_api_dump");
+        LOG_INFO(Render_Vulkan, "API dump layer enabled");
     }
 
+    const auto instance_flags = GetInstanceFlags();
+    LOG_INFO(Render_Vulkan, "Instance flags: 0x{:x}", static_cast<uint32_t>(instance_flags));
+    
     vk::InstanceCreateInfo instance_ci = {
-        .flags = GetInstanceFlags(),
+        .flags = instance_flags,
         .pApplicationInfo = &application_info,
         .enabledLayerCount = static_cast<u32>(layers.size()),
         .ppEnabledLayerNames = layers.data(),
@@ -350,6 +382,7 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
     };
 
 #ifdef __APPLE__
+    LOG_INFO(Render_Vulkan, "Configuring MoltenVK settings...");
     // Use synchronous queue submits if async presentation is enabled, to avoid threading
     // indirection.
     const auto synchronous_queue_submits = Settings::values.async_presentation.GetValue();
@@ -357,6 +390,9 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
     constexpr auto resume_lost_device = true;
     // Maximize concurrency to improve shader compilation performance.
     constexpr auto maximize_concurrent_compilation = true;
+
+    LOG_INFO(Render_Vulkan, "MoltenVK config: sync_submits={}, resume_lost={}, max_concurrent={}",
+             synchronous_queue_submits, resume_lost_device, maximize_concurrent_compilation);
 
     constexpr auto layer_name = "MoltenVK";
     const vk::LayerSettingEXT layer_settings[] = {
@@ -376,14 +412,29 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
     if (std::find(extensions.begin(), extensions.end(), VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) !=
         extensions.end()) {
         instance_ci.pNext = &layer_settings_ci;
+        LOG_INFO(Render_Vulkan, "VK_EXT_layer_settings extension found, applying MoltenVK config");
+    } else {
+        LOG_WARNING(Render_Vulkan, "VK_EXT_layer_settings extension NOT available, using default MoltenVK config");
     }
 #endif
 
-    auto instance = vk::createInstanceUnique(instance_ci);
+    LOG_INFO(Render_Vulkan, "Creating Vulkan instance...");
+    try {
+        auto instance = vk::createInstanceUnique(instance_ci);
+        LOG_INFO(Render_Vulkan, "Vulkan instance created successfully!");
 
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance);
+        LOG_INFO(Render_Vulkan, "Instance dispatcher initialized");
 
-    return instance;
+        return instance;
+    } catch (const vk::Error& e) {
+        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with vk::Error: {} (code: {})", 
+                  e.what(), static_cast<int>(e.code()));
+        throw;
+    } catch (const std::exception& e) {
+        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with exception: {}", e.what());
+        throw;
+    }
 }
 
 vk::UniqueDebugUtilsMessengerEXT CreateDebugMessenger(vk::Instance instance) {

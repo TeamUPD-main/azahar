@@ -1686,8 +1686,8 @@ void az_ra_set_enabled(bool enabled) {
 }
 
 bool az_ra_is_enabled(void) {
-    // Check if user is logged in as proxy for "enabled"
-    return az_ra_is_logged_in();
+    // Check the actual setting value, not just login status
+    return Settings::values.retro_achievements_enabled.GetValue();
 }
 
 void az_ra_set_hardcore_enabled(bool enabled) {

@@ -47,8 +47,8 @@ struct SettingsView: View {
                         title: "Graphics API",
                         group: "Renderer", key: "graphics_api",
                         options: [
-                            (0, "OpenGL"),
-                            (1, "Vulkan (recommended)")
+                            (1, "OpenGL (unsupported on iOS)"),
+                            (2, "Vulkan")
                         ]
                     )
                     SettingToggle(
