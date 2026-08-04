@@ -180,7 +180,7 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
         }
         
         LOG_INFO(Render_Vulkan, "CreateSurface: Metal layer valid at {}, creating Vulkan surface", 
-                 fmt::ptr(metal_layer));
+                 static_cast<const void*>(metal_layer));
         
         const vk::MetalSurfaceCreateInfoEXT macos_ci = {
             .pLayer = metal_layer,

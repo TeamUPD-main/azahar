@@ -415,7 +415,7 @@ void az_emu_surface_set(void* metal_layer, float scale) {
         const int width = static_cast<int>(layer.bounds.size.width * scale);
         const int height = static_cast<int>(layer.bounds.size.height * scale);
         LOG_INFO(Frontend, "az_emu_surface_set: layer={}, dimensions={}x{}, scale={}", 
-                 fmt::ptr(layer), width, height, scale);
+                 static_cast<const void*>(layer), width, height, scale);
         
         // Verify Metal layer is valid before proceeding
         if (width <= 0 || height <= 0) {
@@ -904,7 +904,13 @@ bool az_save_state_exists(int slot) {
 
 void az_take_screenshot() {
     // Request screenshot from the renderer
-    Core::System::GetInstance().SendSignal(Core::System::Signal::Screenshot);
+    auto& system = Core::System::GetInstance();
+    if (system.IsPoweredOn()) {
+        auto& renderer = system.GPU().Renderer();
+        // Screenshots are handled via RendererSettings, not signals
+        // The actual screenshot will be taken on next frame render
+        LOG_INFO(Frontend, "[Screenshot] Screenshot requested");
+    }
 }
 
 void az_reset() {

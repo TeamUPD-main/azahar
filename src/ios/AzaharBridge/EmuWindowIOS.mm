@@ -36,7 +36,7 @@ bool EmuWindowIOS::OnSurfaceChanged(CAMetalLayer* layer) {
     }
     
     LOG_INFO(Frontend, "[EmuWindowIOS] Surface changed: {}x{} → {}x{}, layer={}", 
-             window_width, window_height, temp_width, temp_height, fmt::ptr(layer));
+             window_width, window_height, temp_width, temp_height, static_cast<const void*>(layer));
     
     window_width = static_cast<unsigned>(std::max(temp_width, 0));
     window_height = static_cast<unsigned>(std::max(temp_height, 0));
@@ -77,7 +77,7 @@ void EmuWindowIOS::OnFramebufferSizeChanged() {
 EmuWindowIOS::EmuWindowIOS(CAMetalLayer* layer, bool is_secondary)
     : EmuWindow{is_secondary}, host_layer(layer) {
     LOG_INFO(Frontend, "[EmuWindowIOS] Initializing (secondary={}, layer={})", 
-             is_secondary, fmt::ptr(layer));
+             is_secondary, static_cast<const void*>(layer));
     if (!layer) {
         LOG_WARNING(Frontend, "[EmuWindowIOS] CAMetalLayer is null, running headless");
         return;
