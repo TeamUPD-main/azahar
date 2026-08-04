@@ -150,6 +150,12 @@ void Config::ReadValues() {
     Settings::values.shaders_accurate_mul =
         ios_config->GetBoolean("Renderer", "shaders_accurate_mul", false);
     ReadSetting("Renderer", Settings::values.graphics_api);
+    // iOS only supports Vulkan; fix invalid graphics_api values from old configs
+    if (Settings::values.graphics_api.GetValue() != Settings::GraphicsAPI::Vulkan) {
+        LOG_WARNING(Config, "Invalid graphics_api value {} detected on iOS (only Vulkan is supported), forcing Vulkan",
+                    static_cast<int>(Settings::values.graphics_api.GetValue()));
+        Settings::values.graphics_api = Settings::GraphicsAPI::Vulkan;
+    }
     ReadSetting("Renderer", Settings::values.async_presentation);
     ReadSetting("Renderer", Settings::values.async_shader_compilation);
     ReadSetting("Renderer", Settings::values.spirv_shader_gen);

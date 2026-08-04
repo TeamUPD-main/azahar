@@ -85,8 +85,9 @@ static const char* ios_config_default_file_content = (BOOST_HANA_STRING(R"(
 )") DECLARE_KEY(cpu_clock_percentage) BOOST_HANA_STRING(R"(
 
 [Renderer]
-# Whether to render using Vulkan. 1: Vulkan (default)
-)") DECLARE_KEY(graphics_api) BOOST_HANA_STRING(R"(
+# Graphics API: 0: Software, 1: OpenGL (not available on iOS), 2: Vulkan (default)
+graphics_api = 2
+)
 
 # Whether to compile shaders on multiple worker threads (Vulkan only)
 # 0: Off, 1: On (default)

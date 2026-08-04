@@ -17,7 +17,7 @@
 #include "core/core.h"
 #include "core/memory.h"
 
-#define USE_RETRO_ACHIEVEMENTS_DEV_SERVER
+// #define USE_RETRO_ACHIEVEMENTS_DEV_SERVER
 
 // User-Agent must use semantic versioning (M.m.p format) per rcheevos integration guidelines
 // https://github.com/RetroAchievements/rcheevos/wiki/rc_client-integration#user-agent-header

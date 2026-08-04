@@ -233,15 +233,9 @@ set_source_files_properties(
 )
 target_sources(azahar_ios_app PRIVATE ${BUTTON_ASSETS})
 
-# Embed MoltenVK in the app bundle
-if(EXISTS "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib")
-    add_custom_command(TARGET azahar_ios_app POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_BINARY_DIR}/externals/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib"
-            "$<TARGET_BUNDLE_CONTENT_DIR:azahar_ios_app>/Frameworks/libMoltenVK.dylib"
-        COMMENT "Bundling MoltenVK"
-    )
-endif()
+# MoltenVK is statically linked into the iOS executable at build time via
+# the main CMakeLists.txt (line 434), so no separate dylib bundling is needed.
+# The static library path is: externals/MoltenVK/MoltenVK/static/MoltenVK.xcframework/ios-arm64/libMoltenVK.a
 
 # ---------------------------------------------------------------------------
 # Code signing for on-device deployment (generator-agnostic).
