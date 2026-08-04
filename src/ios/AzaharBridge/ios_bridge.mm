@@ -1098,6 +1098,32 @@ bool az_mii_maker_available(void) {
     return false;
 }
 
+bool az_seeddb_available(void) {
+    const std::string path = fmt::format("{}/seeddb.bin", 
+        FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir));
+    return FileUtil::Exists(path);
+}
+
+bool az_bootrom9_available(void) {
+    const std::string path = FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir) + BOOTROM9;
+    return FileUtil::Exists(path);
+}
+
+bool az_bootrom11_available(void) {
+    const std::string path = FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir) + "boot11.bin";
+    return FileUtil::Exists(path);
+}
+
+bool az_secret_sector_available(void) {
+    const std::string path = FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir) + SECRET_SECTOR;
+    return FileUtil::Exists(path);
+}
+
+bool az_dsp_firmware_available(void) {
+    const std::string path = FileUtil::GetUserPath(FileUtil::UserPath::SDMCDir) + "3ds" DIR_SEP "dspfirm.cdc";
+    return FileUtil::Exists(path);
+}
+
 // ---------------------------------------------------------------------------
 // RetroAchievements
 // ---------------------------------------------------------------------------

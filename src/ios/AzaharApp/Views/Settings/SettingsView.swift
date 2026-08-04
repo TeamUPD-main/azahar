@@ -16,6 +16,9 @@ func safeString(from cString: UnsafePointer<Int8>?) -> String {
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("last_artic_base_addr") private var lastArticBaseAddr = ""
+    @State private var showArticBaseDialog = false
+    @State private var articBaseAddress = ""
 
     var body: some View {
         NavigationStack {
@@ -239,6 +242,25 @@ struct SettingsView: View {
                     )
                 }
 
+                settingsSection("Network", icon: "network") {
+                    Button {
+                        showArticBaseDialog = true
+                    } label: {
+                        HStack {
+                            Label("Connect to Artic Base", systemImage: "wifi")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    
+                    Text("Connect to a real 3DS console running Artic Base server for online play")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 settingsSection("RetroAchievements", icon: "trophy") {
                     NavigationLink {
                         RetroAchievementsView()
@@ -323,6 +345,29 @@ struct SettingsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .alert("Connect to Artic Base", isPresented: $showArticBaseDialog) {
+                TextField("Server Address", text: $articBaseAddress)
+                Button("Connect") {
+                    if !articBaseAddress.isEmpty {
+                        lastArticBaseAddr = articBaseAddress
+                        // Launch emulation with articbase:// URL
+                        let game = Game(
+                            title: "Artic Base",
+                            path: "articbase://\(articBaseAddress)",
+                            titleId: 0
+                        )
+                        appState.currentGame = game
+                        appState.isEmulating = true
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter the IP address of the Artic Base server running on your 3DS console")
+            }
+            .onAppear {
+                articBaseAddress = lastArticBaseAddr
             }
         }
     }

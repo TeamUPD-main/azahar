@@ -19,6 +19,14 @@ struct SystemFilesView: View {
     @State private var showingCIAImport = false
     @State private var installProgress: Double = 0
     @State private var isInstalling = false
+    @State private var showHomeMenuPicker = false
+    @State private var selectedRegion = 1 // Default to USA
+    
+    private let regionNames = ["Japan", "USA", "Europe", "Australia", "China", "Korea", "Taiwan"]
+    
+    private var isHomeMenuAvailable: Bool {
+        az_home_menu_available()
+    }
 
     var body: some View {
         List {
@@ -99,10 +107,90 @@ struct SystemFilesView: View {
                             }
                         }
                     }
+                    
+                    // Seeddb.bin status
+                    HStack {
+                        Label("Seed Database", systemImage: "server.rack")
+                        Spacer()
+                        if az_seeddb_available() {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                    }
                 }
+            }
+            
+            Section {
+                // Boot9 bootrom
+                HStack {
+                    Label("Boot9 Bootrom", systemImage: "cpu")
+                    Spacer()
+                    if az_bootrom9_available() {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+                
+                // Boot11 bootrom
+                HStack {
+                    Label("Boot11 Bootrom", systemImage: "cpu")
+                    Spacer()
+                    if az_bootrom11_available() {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+                
+                // Secret Sector
+                HStack {
+                    Label("Secret Sector", systemImage: "lock.shield")
+                    Spacer()
+                    if az_secret_sector_available() {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+                
+                // DSP Firmware
+                HStack {
+                    Label("DSP Firmware", systemImage: "waveform")
+                    Spacer()
+                    if az_dsp_firmware_available() {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+                
+                Text("These files are optional and not required for most games. They enable advanced features and improve compatibility.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Optional System Files")
             }
 
             Section("Actions") {
+                Button {
+                    showHomeMenuPicker = true
+                } label: {
+                    Label("Boot Home Menu", systemImage: "house")
+                }
+                .disabled(!isHomeMenuAvailable)
+                
                 Button {
                     let keysAvailable = az_are_keys_available()
                     alertMessage = keysAvailable
@@ -132,6 +220,18 @@ struct SystemFilesView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(alertMessage)
+        }
+        .confirmationDialog("Select Region", isPresented: $showHomeMenuPicker) {
+            ForEach(0..<7, id: \.self) { region in
+                if az_system_files_region_available(Int32(region)) {
+                    Button(regionNames[region]) {
+                        bootHomeMenu(region: region)
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose which region's Home Menu to boot")
         }
         .fileImporter(
             isPresented: $showingCIAImport,
@@ -264,6 +364,25 @@ struct SystemFilesView: View {
             alertMessage = "Failed to clear StreetPass data. Error code: \(result)"
         }
         showingAlert = true
+    }
+    
+    private func bootHomeMenu(region: Int) {
+        let path = String(cString: az_get_home_menu_path(Int32(region)))
+        
+        guard !path.isEmpty else {
+            alertMessage = "Home Menu for selected region not found"
+            showingAlert = true
+            return
+        }
+        
+        let game = Game(
+            title: "Home Menu (\(regionNames[region]))",
+            path: path,
+            titleId: 0
+        )
+        
+        appState.currentGame = game
+        appState.isEmulating = true
     }
 }
 

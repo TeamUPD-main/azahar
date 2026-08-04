@@ -464,6 +464,17 @@ bool az_region_manifest_available(void);
 bool az_home_menu_available(void);
 bool az_mii_maker_available(void);
 
+/// Check if seeddb.bin exists
+bool az_seeddb_available(void);
+
+/// Check if bootrom files exist (optional, not required for most games)
+bool az_bootrom9_available(void);
+bool az_bootrom11_available(void);
+bool az_secret_sector_available(void);
+
+/// Check if DSP firmware exists (optional, for audio processing)
+bool az_dsp_firmware_available(void);
+
 // ---------------------------------------------------------------------------
 // RetroAchievements
 // ---------------------------------------------------------------------------
