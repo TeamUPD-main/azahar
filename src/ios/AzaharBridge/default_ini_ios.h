@@ -499,6 +499,10 @@ static const char* ios_config_default_file_content = (BOOST_HANA_STRING(R"(
 # Immediately commits the debug log to file. Use this if Azahar crashes and the log output is being cut.
 )") DECLARE_KEY(instant_debug_log) BOOST_HANA_STRING(R"(
 
+# Show config.ini loading messages in logs
+# 0 (default): Off, 1: On
+)") DECLARE_KEY(log_config_loading) BOOST_HANA_STRING(R"(
+
 # Enable RPC server for scripting purposes. Allows accessing guest memory remotely.
 # 0 (default): Off, 1: On
 )") DECLARE_KEY(enable_rpc_server) BOOST_HANA_STRING(R"(
