@@ -174,11 +174,11 @@ struct TouchControlsView: View {
         centerButtonSize: CGFloat
     ) -> some View {
         ZStack {
-            // D-Pad (left side) - Portrait Position: (10, 730)
+            // D-Pad (left side) - Lower left area
             DPadView(size: dpadSize)
-                .position(x: width * 0.010 + dpadSize/2, y: height * 0.730)
+                .position(x: dpadSize/2 + 20, y: height - dpadSize/2 - 140)
             
-            // Left Analog Stick - Portrait Position: (80, 850)
+            // Left Analog Stick - Lower left
             AnalogStickView(
                 position: $viewModel.leftStickPosition,
                 onPositionChanged: { x, y in
@@ -189,9 +189,9 @@ struct TouchControlsView: View {
                 size: joystickSize,
                 isCirclePad: true
             )
-            .position(x: width * 0.080, y: height * 0.850)
+            .position(x: joystickSize/2 + 20, y: height - joystickSize/2 - 20)
             
-            // Right Analog Stick (C-Stick) - Portrait Position: (800, 720)
+            // Right Analog Stick (C-Stick) - Lower right area, above face buttons
             AnalogStickView(
                 position: $viewModel.rightStickPosition,
                 onPositionChanged: { x, y in
@@ -202,50 +202,46 @@ struct TouchControlsView: View {
                 size: joystickSize,
                 isCirclePad: false
             )
-            .position(x: width * 0.800, y: height * 0.720)
+            .position(x: width - joystickSize/2 - 20, y: height - joystickSize/2 - 180)
             
-            // Face buttons - Portrait positions
-            // Button A - Portrait: (810, 870)
+            // Face buttons - Lower right in diamond pattern
+            // Center of diamond
+            let faceButtonCenterX = width - 100
+            let faceButtonCenterY = height - 80
+            let buttonSpacing: CGFloat = 50
+            
+            // Button A - Right
             ButtonImage(name: "button_a", button: Int32(AZ_BUTTON_A), size: faceButtonSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.810, y: height * 0.870)
+                .position(x: faceButtonCenterX + buttonSpacing, y: faceButtonCenterY)
             
-            // Button B - Portrait: (710, 925)
+            // Button B - Bottom
             ButtonImage(name: "button_b", button: Int32(AZ_BUTTON_B), size: faceButtonSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.710, y: height * 0.925)
+                .position(x: faceButtonCenterX, y: faceButtonCenterY + buttonSpacing)
             
-            // Button X - Portrait: (710, 815)
+            // Button X - Top
             ButtonImage(name: "button_x", button: Int32(AZ_BUTTON_X), size: faceButtonSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.710, y: height * 0.815)
+                .position(x: faceButtonCenterX, y: faceButtonCenterY - buttonSpacing)
             
-            // Button Y - Portrait: (610, 870)
+            // Button Y - Left
             ButtonImage(name: "button_y", button: Int32(AZ_BUTTON_Y), size: faceButtonSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.610, y: height * 0.870)
+                .position(x: faceButtonCenterX - buttonSpacing, y: faceButtonCenterY)
             
-            // L Trigger - Portrait: (10, 640)
-            ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L), size: triggerSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.010 + triggerSize/2, y: height * 0.640)
-            
-            // R Trigger - Portrait: (810, 640)
-            ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R), size: triggerSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.810 + triggerSize/2, y: height * 0.640)
-            
-            // ZL Trigger - Portrait: (210, 640)
-            ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL), size: triggerSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.210, y: height * 0.640)
-            
-            // ZR Trigger - Portrait: (610, 640)
-            ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR), size: triggerSize, opacity: settings.buttonOpacity)
-                .position(x: width * 0.610, y: height * 0.640)
-            
-            // Center buttons - Portrait
+            // Shoulder buttons - Top edge in a row
             HStack(spacing: 12) {
-                // Select - Portrait: (400, 794)
+                ButtonImage(name: "button_l", button: Int32(AZ_TRIGGER_L), size: triggerSize * 0.8, opacity: settings.buttonOpacity)
+                ButtonImage(name: "button_zl", button: Int32(AZ_BUTTON_ZL), size: triggerSize * 0.8, opacity: settings.buttonOpacity)
+                Spacer()
+                ButtonImage(name: "button_zr", button: Int32(AZ_BUTTON_ZR), size: triggerSize * 0.8, opacity: settings.buttonOpacity)
+                ButtonImage(name: "button_r", button: Int32(AZ_TRIGGER_R), size: triggerSize * 0.8, opacity: settings.buttonOpacity)
+            }
+            .position(x: width/2, y: height - height * 0.36)
+            
+            // Center buttons - Middle area between controls
+            HStack(spacing: 20) {
                 ButtonImage(name: "button_select", button: Int32(AZ_BUTTON_SELECT), size: centerButtonSize, opacity: settings.buttonOpacity)
-                
-                // Start - Portrait: (520, 794)
                 ButtonImage(name: "button_start", button: Int32(AZ_BUTTON_START), size: centerButtonSize, opacity: settings.buttonOpacity)
             }
-            .position(x: width * 0.460, y: height * 0.794)
+            .position(x: width/2, y: height - height * 0.25)
         }
     }
     

@@ -127,7 +127,8 @@ struct EmulationView: View {
             }
         }
         .onAppear {
-            // Signal MetalView to bind surface and then start
+            AppLogger.info("[EmulationView] onAppear - starting emulation")
+            viewModel.startEmulation()
         }
         .onDisappear {
             viewModel.stop()

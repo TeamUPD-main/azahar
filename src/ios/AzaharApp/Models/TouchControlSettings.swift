@@ -70,10 +70,10 @@ struct TouchControlSettings: Codable {
             scale = centerButtonScale
         }
         
-        // Portrait mode gets 0.35x scale reduction (393px * 0.5 * 0.35 = 68.78px buttons)
-        // Landscape uses full scale (852px * 0.5 = 426px buttons - normal for landscape)
+        // Portrait gets 0.30x scale (smaller buttons), landscape uses full scale
+        // 393px * 0.5 * 0.30 = 59px buttons in portrait
         let isPortrait = screenSize.height > screenSize.width
-        let portraitAdjustment: CGFloat = isPortrait ? 0.35 : 1.0
+        let portraitAdjustment: CGFloat = isPortrait ? 0.30 : 1.0
         
         return minDimension * scale * portraitAdjustment
     }
