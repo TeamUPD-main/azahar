@@ -615,6 +615,10 @@ int32_t get_current_pid(void);
 /// Get current bundle identifier (returns static string, no need to free)
 const char* get_current_bundle_id(void);
 
+/// Log message from Swift (for comprehensive "All" logging)
+/// level: 0=Info, 1=Debug, 2=Warning, 3=Error, 4=Critical
+void az_log_message(int level, const char* message);
+
 #ifdef __cplusplus
 }
 #endif

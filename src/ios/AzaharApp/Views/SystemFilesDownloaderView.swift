@@ -4,42 +4,253 @@
 
 import SwiftUI
 
-/// System files downloader using Artic Setup Tool
-/// Downloads system files from a real 3DS console over the network
+/// System files downloader with NUS and Artic support (like AzaharPlus Android)
 struct SystemFilesDownloaderView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @AppStorage("last_artic_base_addr") private var lastArticBaseAddr = ""
     
+    @State private var downloadMethod: DownloadMethod = .nus
+    @State private var selectedRegion = 1 // USA
+    @State private var selectedSystemType = 6 // Old3DS + New3DS
     @State private var serverAddress = ""
     @State private var setupState: [Bool]?
     @State private var isChecking = false
+    @State private var isDownloading = false
+    @State private var downloadProgress = 0
+    @State private var totalTitles = 0
     @State private var showAlert = false
+    @State private var alertTitle = ""
     @State private var alertMessage = ""
+    @State private var currentDownloadTitle: UInt64 = 0
+    
+    private let regionNames = ["Japan", "USA", "Europe", "Australia", "China", "Korea", "Taiwan"]
+    private let systemTypeNames = ["Minimal", "Old 3DS", "New 3DS", "Minimal + Old 3DS", "Minimal + New 3DS", "Old 3DS + New 3DS", "All"]
+    private let systemTypeValues = [1, 2, 4, 3, 5, 6, 7]
+    
+    enum DownloadMethod: String, CaseIterable {
+        case nus = "Nintendo Update Server"
+        case artic = "From 3DS Console"
+    }
     
     var body: some View {
         List {
             Section {
-                Text("Azahar needs console unique data and firmware files from a real console to be able to use some of its features. Such files and data can be set up with the Azahar Artic Setup Tool.")
+                Text("Azahar needs system files including Home Menu, shared fonts, and system archives.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                
-                Text("Notes:")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .padding(.top, 8)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("• This operation will install console unique data to Azahar")
-                    Text("• Do not share your user or NAND folders after setup")
-                    Text("• Do not go online with both Azahar and your 3DS at the same time")
-                    Text("• Old 3DS setup is needed for New 3DS setup to work")
-                    Text("• Setup both modes for best compatibility")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
             } header: {
-                Text("About System Files Setup")
+                Text("About System Files")
+            }
+            
+            Section {
+                Picker("Download Method", selection: $downloadMethod) {
+                    ForEach(DownloadMethod.allCases, id: \.self) { method in
+                        Text(method.rawValue).tag(method)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: downloadMethod) { _, newValue in
+                    if newValue == .artic {
+                        checkSetupStatus()
+                    }
+                }
+            } header: {
+                Text("Download Source")
+            }
+            
+            if downloadMethod == .nus {
+                nusDownloadSection
+            } else {
+                articDownloadSection
+            }
+        }
+        .navigationTitle("Download System Files")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            serverAddress = lastArticBaseAddr
+            print("[SystemFilesDownloader] View appeared, method=\(downloadMethod)")
+        }
+        .alert(alertTitle, isPresented: $showAlert) {
+            Button("OK") {
+                if alertTitle == "Download Complete" {
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private var nusDownloadSection: some View {
+        Group {
+            if !az_are_keys_available() {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text("AES Keys Missing")
+                                .fontWeight(.semibold)
+                        }
+                        Text("System files cannot be downloaded without AES keys. Please import your aes_keys.txt file first.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            
+            Section {
+                Picker("Region", selection: $selectedRegion) {
+                    ForEach(0..<regionNames.count, id: \.self) { index in
+                        Text(regionNames[index]).tag(index)
+                    }
+                }
+                
+                Picker("System Type", selection: $selectedSystemType) {
+                    ForEach(0..<systemTypeNames.count, id: \.self) { index in
+                        Text(systemTypeNames[index]).tag(systemTypeValues[index])
+                    }
+                }
+                
+                if isDownloading {
+                    VStack(spacing: 8) {
+                        HStack {
+                            ProgressView()
+                            Text("Downloading system files...")
+                                .font(.subheadline)
+                        }
+                        
+                        if totalTitles > 0 {
+                            ProgressView(value: Double(downloadProgress), total: Double(totalTitles)) {
+                                Text("\(downloadProgress) / \(totalTitles) titles")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        if currentDownloadTitle != 0 {
+                            Text(String(format: "Title: %016llX", currentDownloadTitle))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .monospaced()
+                        }
+                        
+                        Button("Cancel") {
+                            cancelDownload()
+                        }
+                        .foregroundStyle(.red)
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Button {
+                    startNUSDownload()
+                } label: {
+                    Label("Download System Files", systemImage: "arrow.down.circle.fill")
+                }
+                .disabled(isDownloading || !az_are_keys_available())
+            } header: {
+                Text("Download Options")
+            }
+            
+            Section {
+                Text("Downloads: Home Menu (all regions), Shared Font, Mii Maker, Region Manifest, Bad Word List, and other system archives.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+        }
+        .navigationTitle("Download System Files")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            serverAddress = lastArticBaseAddr
+        }
+        .alert("System Files", isPresented: $showAlert) {
+            Button("OK") {}
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private var nusDownloadSection: some View {
+        Group {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Downloads system files directly from Nintendo's servers. No 3DS console required.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("This will download:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.top, 4)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("• Home Menu (all regions)")
+                        Text("• Shared Font")
+                        Text("• Mii Maker")
+                        Text("• Region Manifest")
+                        Text("• Bad Word List")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                
+                if isDownloading {
+                    VStack(spacing: 8) {
+                        ProgressView(value: downloadProgress, total: 1.0)
+                        Text("Downloading... \(Int(downloadProgress * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Button {
+                    startNUSDownload()
+                } label: {
+                    Label("Download System Files", systemImage: "arrow.down.circle.fill")
+                }
+                .disabled(isDownloading || az_system_files_available())
+                
+                if az_system_files_available() {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("System files already installed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var articDownloadSection: some View {
+        Group {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Download system files and console-unique data from your real 3DS using Artic Setup Tool.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("Important:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.top, 4)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("• Install Artic Setup Tool on your 3DS")
+                        Text("• Both devices must be on same Wi-Fi")
+                        Text("• Do not share NAND folder after setup")
+                        Text("• Don't go online with both at same time")
+                        Text("• Old 3DS setup required for New 3DS")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
             
             Section {
@@ -123,40 +334,124 @@ struct SystemFilesDownloaderView: View {
                 }
             }
         }
-        .navigationTitle("Download System Files")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            serverAddress = lastArticBaseAddr
-            checkSetupStatus()
+    }
+    
+    private func startNUSDownload() {
+        print("[NUS] Starting download: region=\(selectedRegion), type=\(selectedSystemType)")
+        
+        // Get title IDs for the selected region and system type
+        let maxTitles = 100
+        var titleIds = [Int64](repeating: 0, count: maxTitles)
+        let count = az_get_system_title_ids(Int32(selectedSystemType), Int32(selectedRegion), &titleIds, Int32(maxTitles))
+        
+        guard count > 0 else {
+            alertTitle = "Error"
+            alertMessage = "No system titles found for the selected region and type."
+            showAlert = true
+            return
         }
-        .alert("System Files Setup", isPresented: $showAlert) {
-            Button("OK") {}
-        } message: {
-            Text(alertMessage)
+        
+        let titles = Array(titleIds.prefix(Int(count)))
+        totalTitles = titles.count
+        downloadProgress = 0
+        isDownloading = true
+        
+        print("[NUS] Found \(totalTitles) titles to download")
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            var successCount = 0
+            var failedTitles: [Int64] = []
+            
+            for (index, titleId) in titles.enumerated() {
+                // Check if cancelled
+                if !self.isDownloading {
+                    DispatchQueue.main.async {
+                        self.alertTitle = "Cancelled"
+                        self.alertMessage = "Download was cancelled by user."
+                        self.showAlert = true
+                        self.isDownloading = false
+                    }
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    self.currentDownloadTitle = UInt64(bitPattern: titleId)
+                }
+                
+                print("[NUS] Downloading title \(index + 1)/\(totalTitles): \(String(format: "%016llX", titleId))")
+                
+                // Try downloading with retries
+                var success = false
+                for attempt in 0..<3 {
+                    let result = az_download_title_from_nus(titleId)
+                    if result == 0 {
+                        success = true
+                        print("[NUS] Successfully downloaded title \(String(format: "%016llX", titleId))")
+                        break
+                    } else {
+                        print("[NUS] Failed to download title \(String(format: "%016llX", titleId)), attempt \(attempt + 1)/3, error: \(result)")
+                        if attempt < 2 {
+                            Thread.sleep(forTimeInterval: 3.0)
+                        }
+                    }
+                }
+                
+                if success {
+                    successCount += 1
+                } else {
+                    failedTitles.append(titleId)
+                }
+                
+                DispatchQueue.main.async {
+                    self.downloadProgress = index + 1
+                }
+            }
+            
+            DispatchQueue.main.async {
+                self.isDownloading = false
+                self.currentDownloadTitle = 0
+                
+                if failedTitles.isEmpty {
+                    self.alertTitle = "Download Complete"
+                    self.alertMessage = "Successfully downloaded and installed all \(successCount) system files."
+                } else {
+                    self.alertTitle = "Download Completed with Errors"
+                    self.alertMessage = "Successfully downloaded \(successCount) of \(totalTitles) titles. \(failedTitles.count) failed."
+                }
+                self.showAlert = true
+                print("[NUS] Download complete: \(successCount)/\(totalTitles) succeeded")
+            }
         }
     }
     
+    private func cancelDownload() {
+        print("[NUS] User cancelled download")
+        isDownloading = false
+    }
+    
     private func checkSetupStatus() {
+        print("[Artic] Checking setup status for server: \(serverAddress)")
         guard !serverAddress.isEmpty else { return }
         
         isChecking = true
         
         DispatchQueue.global(qos: .userInitiated).async {
-            // Check if system titles are installed
-            // Index 0: Old 3DS, Index 1: New 3DS
             var state = [Bool](repeating: false, count: 2)
-            state[0] = az_system_files_region_available(1) // Check USA region as proxy
-            state[1] = false // TODO: Add New 3DS specific check
+            state[0] = az_system_files_region_available(1) // Check USA region
+            state[1] = false // TODO: Add New 3DS check
             
             DispatchQueue.main.async {
                 self.setupState = state
                 self.isChecking = false
+                print("[Artic] Setup state: old3ds=\(state[0]), new3ds=\(state[1])")
             }
         }
     }
     
     private func startSetup(isNew3DS: Bool) {
+        print("[Artic] Starting \(isNew3DS ? "New" : "Old") 3DS setup with server: \(serverAddress)")
         guard !serverAddress.isEmpty else {
+            alertTitle = "Error"
             alertMessage = "Please enter a server address"
             showAlert = true
             return
@@ -164,7 +459,7 @@ struct SystemFilesDownloaderView: View {
         
         lastArticBaseAddr = serverAddress
         
-        // Uninstall existing files for this mode
+        // Uninstall existing files
         az_uninstall_system_files(isNew3DS)
         
         // Launch emulation with Artic Init URL

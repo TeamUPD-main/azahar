@@ -71,6 +71,8 @@ static void call_server(const rc_api_request_t* request, rc_client_server_callba
     const auto [base_url, path] = parse_url(request->url);
 
     httplib::Client http_client(base_url);
+    http_client.enable_server_certificate_verification(false); // iOS: Allow HTTPS connections
+    http_client.set_connection_timeout(10); // 10 second timeout
 
     LOG_DEBUG(RetroAchievements, "Server request: {} {}", request->post_data ? "POST" : "GET",
               request->url);
@@ -176,6 +178,8 @@ void Client::DoFrame() {
 void Client::FetchImage(const char* url, ImageCallback callback) const {
     const auto [base_url, path] = parse_url(url);
     httplib::Client http_client(base_url);
+    http_client.enable_server_certificate_verification(false); // iOS: Allow HTTPS connections
+    http_client.set_connection_timeout(10); // 10 second timeout
 
     if (auto result = http_client.Get(path, headers)) {
         std::vector<uint8_t> image_data(result->body.begin(), result->body.end());

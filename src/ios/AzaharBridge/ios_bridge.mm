@@ -1126,6 +1126,33 @@ bool az_dsp_firmware_available(void) {
     return FileUtil::Exists(path);
 }
 
+int az_download_title_from_nus(uint64_t title_id) {
+    LOG_INFO(Frontend, "[NUS] Starting download for title {:016X}", title_id);
+    const auto status = Service::AM::InstallFromNus(title_id);
+    if (status != Service::AM::InstallStatus::Success) {
+        LOG_ERROR(Frontend, "[NUS] Failed to download title {:016X}, status: {}", title_id, static_cast<int>(status));
+        return static_cast<int>(status);
+    }
+    LOG_INFO(Frontend, "[NUS] Successfully downloaded and installed title {:016X}", title_id);
+    return 0;
+}
+
+int az_get_system_title_ids(int system_type, int region, uint64_t* out_titles, int max_count) {
+    LOG_DEBUG(Frontend, "[System] Getting system title IDs for type={}, region={}", system_type, region);
+    const auto mode = static_cast<Core::SystemTitleSet>(system_type);
+    const std::vector<u64> titles = Core::GetSystemTitleIds(mode, region);
+    
+    LOG_INFO(Frontend, "[System] Found {} system titles for type={}, region={}", titles.size(), system_type, region);
+    
+    if (out_titles != nullptr && max_count > 0) {
+        const int count = std::min(static_cast<int>(titles.size()), max_count);
+        std::memcpy(out_titles, titles.data(), count * sizeof(uint64_t));
+        return count;
+    }
+    
+    return static_cast<int>(titles.size());
+}
+
 // ---------------------------------------------------------------------------
 // RetroAchievements
 // ---------------------------------------------------------------------------

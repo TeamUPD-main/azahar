@@ -213,6 +213,12 @@ struct SettingsView: View {
                 }
 
                 settingsSection("Debugging", icon: "ant") {
+                    NavigationLink {
+                        LogViewerView()
+                    } label: {
+                        Label("View Logs", systemImage: "doc.text.magnifyingglass")
+                    }
+                    
                     SettingToggle(title: "Renderer Debug", group: "Debugging", key: "renderer_debug")
                     SettingToggle(title: "Frame Time Recording", group: "Debugging", key: "record_frame_times")
                     
@@ -220,6 +226,7 @@ struct SettingsView: View {
                         title: "Log Level",
                         group: "Debugging", key: "log_filter_level",
                         options: [
+                            (-1, "All (Everything)"),
                             (0, "Trace"),
                             (1, "Debug"),
                             (2, "Info"),
@@ -240,6 +247,10 @@ struct SettingsView: View {
                         description: "Include stack traces in crash reports",
                         group: "Debugging", key: "log_stack_trace"
                     )
+                    
+                    Text("View logs to debug game loading and other issues")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 settingsSection("Network", icon: "network") {
