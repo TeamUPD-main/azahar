@@ -326,7 +326,7 @@ void az_unlink_console(void);
 /// Downloads and installs a title from Nintendo Update Service (NUS).
 /// Returns InstallStatus: 0=Success, 1=ErrorFailedToOpenFile, 2=ErrorFileNotFound, 
 /// 3=ErrorAborted, 4=ErrorInvalid, 5=ErrorEncrypted
-int az_download_title_from_nus(int64_t title_id);
+int az_download_title_from_nus(uint64_t title_id);
 
 // ---------------------------------------------------------------------------
 // Save states / performance / play time
