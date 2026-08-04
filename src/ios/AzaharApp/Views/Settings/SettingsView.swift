@@ -232,13 +232,19 @@ struct SettingsView: View {
                         title: "C++ Log Level",
                         group: "Debugging", key: "log_filter_level",
                         options: [
-                            (0, "Trace"),
-                            (1, "Debug"),
+                            (0, "Trace (All)"),
+                            (1, "Debug (All)"),
                             (2, "Info"),
                             (3, "Warning"),
                             (4, "Error"),
                             (5, "Critical")
                         ]
+                    )
+                    
+                    SettingToggle(
+                        title: "Show Config Loading Logs",
+                        description: "Display config.ini load messages in logs",
+                        group: "Debugging", key: "log_config_loading"
                     )
                     
                     SettingToggle(
@@ -253,7 +259,7 @@ struct SettingsView: View {
                         group: "Debugging", key: "log_stack_trace"
                     )
                     
-                    Text("Experimental Logging captures every UI interaction and navigation event. Game operations and errors are always logged.")
+                    Text("Experimental Logging captures every UI interaction and navigation event. Game operations and errors are always logged. Debug/Trace levels capture ALL log categories.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

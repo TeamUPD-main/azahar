@@ -126,13 +126,18 @@ RendererVulkan::RendererVulkan(Core::System& system, Pica::PicaCore& pica_,
                                          update_queue,
                                          main_present_window.ImageCount()},
       present_heap{instance, scheduler.GetMasterSemaphore(), PRESENT_BINDINGS, 32} {
+    LOG_INFO(Render_Vulkan, "Vulkan renderer initialization started");
+    LOG_INFO(Render_Vulkan, "Device: {}", instance.GetVendorName());
+    LOG_INFO(Render_Vulkan, "Driver: {}", instance.GetDriverVersionName());
     CompileShaders();
     BuildLayouts();
     BuildPipelines();
     if (secondary_window) {
         secondary_present_window_ptr = std::make_unique<PresentWindow>(
             *secondary_window, instance, scheduler, IsLowRefreshRate());
+        LOG_INFO(Render_Vulkan, "Secondary window initialized");
     }
+    LOG_INFO(Render_Vulkan, "Vulkan renderer initialization complete");
 }
 
 RendererVulkan::~RendererVulkan() {

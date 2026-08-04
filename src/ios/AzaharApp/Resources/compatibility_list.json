@@ -9736,7 +9736,7 @@
   },
   {
     "compatibility": 99,
-    "directory": "zeus-quest-remastered",
+    "ddirectory": "zeus-quest-remastered",
     "releases": [
       {"id": "000400000F70CA00"}
     ],

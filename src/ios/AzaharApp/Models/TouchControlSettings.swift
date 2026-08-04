@@ -54,6 +54,7 @@ struct TouchControlSettings: Codable {
     /// Android: min(screenWidth, screenHeight) * scale
     func buttonSize(for type: ButtonType, screenSize: CGSize) -> CGFloat {
         let minDimension = min(screenSize.width, screenSize.height)
+        
         let scale: CGFloat
         
         switch type {
@@ -69,7 +70,12 @@ struct TouchControlSettings: Codable {
             scale = centerButtonScale
         }
         
-        return minDimension * scale
+        // Portrait mode gets 0.35x scale reduction (393px * 0.5 * 0.35 = 68.78px buttons)
+        // Landscape uses full scale (852px * 0.5 = 426px buttons - normal for landscape)
+        let isPortrait = screenSize.height > screenSize.width
+        let portraitAdjustment: CGFloat = isPortrait ? 0.35 : 1.0
+        
+        return minDimension * scale * portraitAdjustment
     }
     
     enum ButtonType {

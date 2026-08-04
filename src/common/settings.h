@@ -658,6 +658,7 @@ struct Values {
     Setting<u16> gdbstub_port{24689, Keys::gdbstub_port};
     Setting<bool> instant_debug_log{false, Keys::instant_debug_log};
     Setting<bool> enable_rpc_server{false, Keys::enable_rpc_server};
+    Setting<bool> log_config_loading{false, Keys::log_config_loading};
     Setting<bool> toggle_unique_data_console_type{false, Keys::toggle_unique_data_console_type};
     Setting<bool> break_on_unmapped_memory_access{false, Keys::break_on_unmapped_memory_access};
 

@@ -60,7 +60,11 @@ bool Config::LoadINI(const std::string& default_contents, bool retry) {
         LOG_ERROR(Config, "Failed.");
         return false;
     }
-    LOG_INFO(Config, "Successfully loaded {}", location);
+    
+    // Only log config loading if the setting is enabled
+    if (Settings::values.log_config_loading.GetValue()) {
+        LOG_INFO(Config, "Successfully loaded {}", location);
+    }
     return true;
 }
 

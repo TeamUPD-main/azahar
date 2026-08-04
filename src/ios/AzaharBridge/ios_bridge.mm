@@ -446,6 +446,10 @@ void az_emu_surface_destroy(void) {
     }
 }
 
+bool az_is_surface_set(void) {
+    return pending_primary_layer != nullptr;
+}
+
 void az_emu_secondary_surface_set(void* metal_layer, float scale) {
     auto* layer = (__bridge CAMetalLayer*)metal_layer;
     pending_secondary_layer = layer;
