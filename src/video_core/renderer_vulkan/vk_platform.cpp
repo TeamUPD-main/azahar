@@ -349,7 +349,10 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
 
     LOG_INFO(Render_Vulkan, "Getting instance extensions...");
     const auto extensions = GetInstanceExtensions(window_type, enable_validation);
-    LOG_INFO(Render_Vulkan, "Required extensions: {}", fmt::join(extensions, ", "));
+    LOG_INFO(Render_Vulkan, "Required {} extensions", extensions.size());
+    for (const auto* ext : extensions) {
+        LOG_DEBUG(Render_Vulkan, "  Extension: {}", ext);
+    }
 
     const vk::ApplicationInfo application_info = {
         .pApplicationName = "Citra",
@@ -427,9 +430,9 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
         LOG_INFO(Render_Vulkan, "Instance dispatcher initialized");
 
         return instance;
-    } catch (const vk::Error& e) {
-        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with vk::Error: {} (code: {})", 
-                  e.what(), static_cast<int>(e.code()));
+    } catch (const vk::SystemError& e) {
+        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with vk::SystemError: {} (result: {})", 
+                  e.what(), vk::to_string(e.code()));
         throw;
     } catch (const std::exception& e) {
         LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with exception: {}", e.what());
