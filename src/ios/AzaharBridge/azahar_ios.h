@@ -619,6 +619,10 @@ const char* get_current_bundle_id(void);
 /// level: 0=Info, 1=Debug, 2=Warning, 3=Error, 4=Critical
 void az_log_message(int level, const char* message);
 
+/// Apply log filter level (applies immediately to running system)
+/// level: -1=All(Trace), 0=Trace, 1=Debug, 2=Info, 3=Warning, 4=Error, 5=Critical
+void az_apply_log_filter_level(int level);
+
 #ifdef __cplusplus
 }
 #endif

@@ -119,9 +119,9 @@ struct LogViewerView: View {
         isLoading = true
         
         DispatchQueue.global(qos: .userInitiated).async {
-            // Get log file path from Documents directory
+            // Get log file path from Documents/Azahar/log directory
             let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            let logPath = docsDir?.appendingPathComponent("log/citra_log.txt").path ?? ""
+            let logPath = docsDir?.appendingPathComponent("Azahar/log/azahar_log.txt").path ?? ""
             
             var content = ""
             if FileManager.default.fileExists(atPath: logPath) {
@@ -136,7 +136,7 @@ struct LogViewerView: View {
                     content = "Error reading log file: \(error.localizedDescription)"
                 }
             } else {
-                content = "Log file not found at: \(logPath)\n\nLogs will be created when you run a game."
+                content = "Log file not found at: \(logPath)\n\nLogs will be created when you run a game.\n\nExpected location: Documents/Azahar/log/azahar_log.txt"
             }
             
             DispatchQueue.main.async {
@@ -148,7 +148,7 @@ struct LogViewerView: View {
     
     private func clearLogs() {
         let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        let logPath = docsDir?.appendingPathComponent("log/citra_log.txt").path ?? ""
+        let logPath = docsDir?.appendingPathComponent("Azahar/log/azahar_log.txt").path ?? ""
         
         do {
             try "".write(toFile: logPath, atomically: true, encoding: .utf8)
@@ -160,7 +160,7 @@ struct LogViewerView: View {
     
     private func shareLogs() {
         let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        guard let logURL = docsDir?.appendingPathComponent("log/citra_log.txt") else { return }
+        guard let logURL = docsDir?.appendingPathComponent("Azahar/log/azahar_log.txt") else { return }
         
         let activityVC = UIActivityViewController(activityItems: [logURL], applicationActivities: nil)
         

@@ -1616,3 +1616,69 @@ const char* get_current_bundle_id(void) {
     }
     return bundle_id.c_str();
 }
+
+void az_log_message(int level, const char* message) {
+    if (!message) return;
+    
+    switch (level) {
+        case 0: // Info
+            LOG_INFO(Frontend, "{}", message);
+            break;
+        case 1: // Debug
+            LOG_DEBUG(Frontend, "{}", message);
+            break;
+        case 2: // Warning
+            LOG_WARNING(Frontend, "{}", message);
+            break;
+        case 3: // Error
+            LOG_ERROR(Frontend, "{}", message);
+            break;
+        case 4: // Critical
+            LOG_CRITICAL(Frontend, "{}", message);
+            break;
+        default:
+            LOG_INFO(Frontend, "{}", message);
+            break;
+    }
+}
+
+void az_apply_log_filter_level(int level) {
+    std::string filter_string;
+    
+    switch (level) {
+        case -1: // All (Everything) - Log at Trace level
+            filter_string = "*:Trace";
+            break;
+        case 0: // Trace
+            filter_string = "*:Trace";
+            break;
+        case 1: // Debug
+            filter_string = "*:Debug";
+            break;
+        case 2: // Info
+            filter_string = "*:Info";
+            break;
+        case 3: // Warning
+            filter_string = "*:Warning";
+            break;
+        case 4: // Error
+            filter_string = "*:Error";
+            break;
+        case 5: // Critical
+            filter_string = "*:Critical";
+            break;
+        default:
+            filter_string = "*:Info";
+            break;
+    }
+    
+    LOG_INFO(Frontend, "Applying log filter: {}", filter_string);
+    
+    // Update the setting
+    Settings::values.log_filter.SetValue(filter_string);
+    
+    // Apply to the running logger
+    Common::Log::Filter filter;
+    filter.ParseFilterString(filter_string);
+    Common::Log::SetGlobalFilter(filter);
+}

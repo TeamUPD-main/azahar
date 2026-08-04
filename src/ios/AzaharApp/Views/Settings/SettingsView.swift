@@ -439,6 +439,12 @@ struct SettingPicker: View {
         }
         .onChange(of: selection) { _, newValue in
             az_setting_set_int(group, key, newValue)
+            
+            // Special handling for log_filter_level - apply immediately
+            if key == "log_filter_level" {
+                az_apply_log_filter_level(Int32(newValue))
+                print("[Settings] Applied log filter level: \(newValue)")
+            }
         }
         .onAppear {
             selection = Int(az_setting_get_int(group, key, options.first?.0 ?? 0))
