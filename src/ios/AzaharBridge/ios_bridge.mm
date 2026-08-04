@@ -256,9 +256,11 @@ static void RunCitra(const std::string& filepath) {
         system.Load(*window, filepath, secondary_window.get());
     
     if (load_result != Core::System::ResultStatus::Success) {
-        LOG_CRITICAL(Frontend, "Failed to load game with result: {}", static_cast<u32>(load_result));
-        LOG_CRITICAL(Frontend, "Result status code: {}", Core::System::GetResultStatusString(load_result));
-        LOG_CRITICAL(Frontend, "Status details: {}", system.GetStatusDetails());
+        LOG_CRITICAL(Frontend, "Failed to load ROM (Error {})!", load_result);
+        const char* details = system.GetStatusDetails();
+        if (details && details[0] != '\0') {
+            LOG_CRITICAL(Frontend, "Status details: {}", details);
+        }
         last_result.store(static_cast<int>(load_result));
         return;
     }
