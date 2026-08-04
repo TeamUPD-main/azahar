@@ -45,6 +45,9 @@ target_link_libraries(azahar_ios PRIVATE
     citra_common citra_core video_core audio_core input_common network inih
 )
 
+# Define IOS preprocessor macro so C++ code can detect iOS platform
+target_compile_definitions(azahar_ios PUBLIC IOS)
+
 # ObjC++ files need ARC and the ObjC++ standard
 set_target_properties(azahar_ios PROPERTIES
     OBJCXX_STANDARD 20
@@ -213,6 +216,9 @@ if(NOT CMAKE_GENERATOR STREQUAL "Xcode")
 endif()
 
 target_link_libraries(azahar_ios_app PRIVATE azahar_ios)
+
+# Ensure IOS preprocessor macro is available to all linked targets
+target_compile_definitions(azahar_ios_app PRIVATE IOS)
 
 # Add WhatsNew.json and compatibility_list.json as bundle resources
 set_source_files_properties(

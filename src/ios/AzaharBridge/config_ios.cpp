@@ -155,6 +155,30 @@ void Config::ReadValues() {
         LOG_WARNING(Config, "Invalid graphics_api value {} detected on iOS (only Vulkan is supported), forcing Vulkan",
                     static_cast<int>(Settings::values.graphics_api.GetValue()));
         Settings::values.graphics_api = Settings::GraphicsAPI::Vulkan;
+        
+        // Write corrected value back to config.ini to stop repeated warnings
+        std::string ini_content;
+        FileUtil::ReadFileToString(true, ios_config_loc, ini_content);
+        
+        // Update graphics_api in [Renderer] section
+        const std::string section_header = "[Renderer]";
+        const std::string key_pattern = "graphics_api =";
+        
+        size_t section_pos = ini_content.find(section_header);
+        if (section_pos != std::string::npos) {
+            size_t key_pos = ini_content.find(key_pattern, section_pos);
+            size_t next_section = ini_content.find("\n[", section_pos + 1);
+            
+            if (key_pos != std::string::npos && 
+                (next_section == std::string::npos || key_pos < next_section)) {
+                // Key exists, update its value to 2 (Vulkan)
+                size_t value_start = ini_content.find("=", key_pos) + 1;
+                size_t value_end = ini_content.find("\n", value_start);
+                ini_content.replace(value_start, value_end - value_start, " 2");
+                FileUtil::WriteStringToFile(true, ios_config_loc, ini_content);
+                LOG_INFO(Config, "Updated graphics_api to 2 (Vulkan) in config.ini");
+            }
+        }
     }
     ReadSetting("Renderer", Settings::values.async_presentation);
     ReadSetting("Renderer", Settings::values.async_shader_compilation);

@@ -1243,11 +1243,17 @@ public:
             // Write to config file
             const std::string config_path = FileUtil::GetUserPath(FileUtil::UserPath::ConfigDir) + "config.ini";
             std::string ini_content;
-            FileUtil::ReadFileToString(true, config_path, ini_content);
+            
+            if (!FileUtil::ReadFileToString(true, config_path, ini_content)) {
+                LOG_ERROR(Frontend, "Failed to read config file for RA token save: {}", config_path);
+                return;
+            }
+            
+            LOG_INFO(Frontend, "Read config file, size: {} bytes", ini_content.size());
             
             // Update or add the RetroAchievements credentials in the INI content
             auto update_ini_value = [](std::string& content, const std::string& section, 
-                                       const std::string& key, const std::string& value) {
+                                       const std::string& key, const std::string& value) -> bool {
                 const std::string section_header = "[" + section + "]";
                 const std::string key_pattern = key + " =";
                 
@@ -1263,20 +1269,34 @@ public:
                         // Key exists, update its value
                         size_t value_start = content.find("=", key_pos) + 1;
                         size_t value_end = content.find("\n", value_start);
+                        if (value_end == std::string::npos) value_end = content.length();
                         content.replace(value_start, value_end - value_start, " " + value);
+                        return true;
                     } else {
                         // Key doesn't exist, add it after section header
                         size_t insert_pos = content.find("\n", section_pos) + 1;
                         content.insert(insert_pos, key + " = " + value + "\n");
+                        return true;
                     }
+                } else {
+                    LOG_ERROR(Frontend, "Section [{}] not found in config file", section);
+                    return false;
                 }
             };
             
-            update_ini_value(ini_content, "RetroAchievements", "retro_achievements_username", ra_cached_username);
-            update_ini_value(ini_content, "RetroAchievements", "retro_achievements_token", ra_cached_token);
+            bool updated_user = update_ini_value(ini_content, "RetroAchievements", "retro_achievements_username", ra_cached_username);
+            bool updated_token = update_ini_value(ini_content, "RetroAchievements", "retro_achievements_token", ra_cached_token);
             
-            FileUtil::WriteStringToFile(true, config_path, ini_content);
-            LOG_INFO(Frontend, "RetroAchievements credentials saved to config for auto-login");
+            if (updated_user && updated_token) {
+                if (FileUtil::WriteStringToFile(true, config_path, ini_content)) {
+                    LOG_INFO(Frontend, "RetroAchievements credentials saved to config for auto-login: user={}, token_len={}", 
+                             ra_cached_username, ra_cached_token.length());
+                } else {
+                    LOG_ERROR(Frontend, "Failed to write config file after updating RA credentials");
+                }
+            } else {
+                LOG_ERROR(Frontend, "Failed to update RA credentials in config content");
+            }
         }
     }
 
