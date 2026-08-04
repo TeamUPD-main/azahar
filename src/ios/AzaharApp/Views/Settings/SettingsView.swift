@@ -353,9 +353,10 @@ struct SettingsView: View {
                         lastArticBaseAddr = articBaseAddress
                         // Launch emulation with articbase:// URL
                         let game = Game(
-                            title: "Artic Base",
                             path: "articbase://\(articBaseAddress)",
-                            titleId: 0
+                            title: "Artic Base",
+                            titleId: 0,
+                            mediaType: Int32(AZ_MEDIA_TYPE_SDMC)
                         )
                         appState.currentGame = game
                         appState.isEmulating = true

@@ -376,9 +376,10 @@ struct SystemFilesView: View {
         }
         
         let game = Game(
-            title: "Home Menu (\(regionNames[region]))",
             path: path,
-            titleId: 0
+            title: "Home Menu (\(regionNames[region]))",
+            titleId: 0,
+            mediaType: Int32(AZ_MEDIA_TYPE_NAND)
         )
         
         appState.currentGame = game

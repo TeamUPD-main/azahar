@@ -170,9 +170,10 @@ struct SystemFilesDownloaderView: View {
         // Launch emulation with Artic Init URL
         let urlScheme = isNew3DS ? "articinin" : "articinio"
         let game = Game(
-            title: isNew3DS ? "New 3DS Setup" : "Old 3DS Setup",
             path: "\(urlScheme)://\(serverAddress)",
-            titleId: 0
+            title: isNew3DS ? "New 3DS Setup" : "Old 3DS Setup",
+            titleId: 0,
+            mediaType: Int32(AZ_MEDIA_TYPE_SDMC)
         )
         
         appState.currentGame = game
