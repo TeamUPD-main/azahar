@@ -257,8 +257,8 @@ static void RunCitra(const std::string& filepath) {
     
     if (load_result != Core::System::ResultStatus::Success) {
         LOG_CRITICAL(Frontend, "Failed to load ROM (Error {})!", load_result);
-        const char* details = system.GetStatusDetails();
-        if (details && details[0] != '\0') {
+        const std::string details = system.GetStatusDetails();
+        if (!details.empty()) {
             LOG_CRITICAL(Frontend, "Status details: {}", details);
         }
         last_result.store(static_cast<int>(load_result));
