@@ -171,10 +171,19 @@ function(download_qt target)
 endfunction()
 
 function(download_moltenvk)
-    set(MOLTENVK_TAR "${CMAKE_BINARY_DIR}/externals/MoltenVK.tar")
+    # Use iOS-specific tarball for iOS builds (smaller, no macOS binaries)
+    # Use full tarball for macOS builds (includes both static and dynamic libraries)
+    if (IOS)
+        set(MOLTENVK_RELEASE "MoltenVK-ios")
+    else()
+        set(MOLTENVK_RELEASE "MoltenVK-all")
+    endif()
+    
+    set(MOLTENVK_TAR "${CMAKE_BINARY_DIR}/externals/${MOLTENVK_RELEASE}.tar")
     if (NOT EXISTS "${CMAKE_BINARY_DIR}/externals/MoltenVK")
         if (NOT EXISTS ${MOLTENVK_TAR})
-            file(DOWNLOAD https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.1/MoltenVK-all.tar
+            message(STATUS "Downloading ${MOLTENVK_RELEASE}.tar for ${CMAKE_SYSTEM_NAME}...")
+            file(DOWNLOAD https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/${MOLTENVK_RELEASE}.tar
                 ${MOLTENVK_TAR} SHOW_PROGRESS)
         endif()
 
