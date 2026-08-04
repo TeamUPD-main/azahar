@@ -27,8 +27,10 @@ struct RootView: View {
                 }
                 .fullScreenCover(isPresented: $appState.isEmulating) {
                     if let game = appState.currentGame {
-                        AppLogger.viewLifecycle("RootView", event: "presenting EmulationView fullScreenCover")
                         EmulationView(game: game)
+                            .onAppear {
+                                AppLogger.viewLifecycle("RootView", event: "presenting EmulationView fullScreenCover")
+                            }
                     }
                 }
         }
