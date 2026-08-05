@@ -73,8 +73,8 @@ auto EnsureMainThread(Func&& func) -> decltype(func()) {
         }
     } else {
         // For move-only types (like vk::UniqueHandle), use pointer + manual memory management
-        // Cannot use __block with move-only types, and blocks capture by const reference
-        ReturnType* result_ptr = nullptr;
+        // Raw pointer is copyable, so __block works fine
+        __block ReturnType* result_ptr = nullptr;
         __block std::exception_ptr exception;
         
         dispatch_sync(dispatch_get_main_queue(), ^{
