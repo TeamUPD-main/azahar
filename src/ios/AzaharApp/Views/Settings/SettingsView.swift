@@ -356,6 +356,13 @@ struct SettingsView: View {
                         Text(safeString(from: az_get_version_string()))
                             .foregroundStyle(.secondary)
                     }
+                    
+                    NavigationLink {
+                        SystemInfoView()
+                    } label: {
+                        Label("System Information", systemImage: "info.circle.fill")
+                    }
+                    
                     NavigationLink("Licenses") {
                         Text("GPLv2+")
                             .navigationTitle("License")
