@@ -368,13 +368,10 @@ void Config::ReadValues() {
     ReadSetting("Audio", Settings::values.enable_realtime_audio);
     ReadSetting("Audio", Settings::values.simulate_headphones_plugged);
     ReadSetting("Audio", Settings::values.volume);
-    // Use OpenAL backend on iOS (best available audio backend for iOS)
-    // Note: Folium uses CoreAudio but Azahar's audio system uses OpenAL for iOS
-    Settings::values.output_type = AudioCore::SinkType::OpenAL;
-    Settings::values.input_type = AudioCore::InputType::OpenAL;
+    ReadSetting("Audio", Settings::values.output_type);
     ReadSetting("Audio", Settings::values.output_device);
+    ReadSetting("Audio", Settings::values.input_type);
     ReadSetting("Audio", Settings::values.input_device);
-    LOG_INFO(Config, "Audio backend: Using OpenAL on iOS");
 
     // Data Storage
     ReadSetting("Data Storage", Settings::values.use_virtual_sd);
