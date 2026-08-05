@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 import SwiftUI
+import AVFoundation
 
 @main
 struct AzaharApp: App {
@@ -14,9 +15,17 @@ struct AzaharApp: App {
     @AppStorage("hasLaunchedStikDebugThisSession") private var hasLaunchedStikDebug = false
     @State private var showWhatsNew = false
 
-import AVFoundation
-
     init() {
+        // Configure AVAudioSession for OpenAL
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session category: \(error)")
+        }
+    }
+
+import AVFoundation
         // Install iOS 26 crash prevention handlers
         installJIT26BreakpointHandler()
         
