@@ -168,6 +168,10 @@ void Config::ReadValues() {
     Settings::values.use_shader_jit = false;
     LOG_INFO(Config, "CPU/Shader JIT: HARDCODED OFF on iOS (optimized interpreter mode)");
     
+    // Enable FastInterp (cached interpreter with computed goto) for best non-JIT performance
+    Settings::values.use_fastinterp = true;
+    LOG_INFO(Config, "FastInterp: ENABLED (optimized cached interpreter, faster than DynCom)");
+    
     ReadSetting("Core", Settings::values.cpu_clock_percentage);
 
     // Renderer
