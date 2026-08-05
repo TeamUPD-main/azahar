@@ -93,9 +93,14 @@ class ExternalDisplayManager: ObservableObject {
             screen.currentMode = mode
         }
         
-        // Load saved display mode preference
+        // Load saved display mode preference, default to fullscreen for external displays
         let savedMode = UserDefaults.standard.integer(forKey: "external_display_mode")
-        if let mode = ExternalDisplayMode(rawValue: savedMode) {
+        if savedMode == 0 && !UserDefaults.standard.bool(forKey: "has_set_external_display_mode") {
+            // First time connecting external display - default to fullscreen
+            displayMode = .externalFullscreen
+            UserDefaults.standard.set(ExternalDisplayMode.externalFullscreen.rawValue, forKey: "external_display_mode")
+            UserDefaults.standard.set(true, forKey: "has_set_external_display_mode")
+        } else if let mode = ExternalDisplayMode(rawValue: savedMode) {
             displayMode = mode
         }
         
@@ -245,30 +250,23 @@ final class ExternalMetalUIView: UIView {
         metalLayer.framebufferOnly = true
         
         // Use external screen's scale
-        if let screen = window?.screen {
-            metalLayer.contentsScale = screen.scale
-        } else {
-            metalLayer.contentsScale = UIScreen.main.scale
-        }
-        
-        metalLayer.drawableSize = bounds.size
+        let scale = window?.screen.scale ?? UIScreen.main.scale
+        metalLayer.contentsScale = scale
+        metalLayer.drawableSize = CGSize(width: bounds.size.width * scale, height: bounds.size.height * scale)
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
         metalLayer.frame = bounds
         
-        if let screen = window?.screen {
-            metalLayer.contentsScale = screen.scale
-        }
-        
-        metalLayer.drawableSize = bounds.size
+        let scale = window?.screen.scale ?? UIScreen.main.scale
+        metalLayer.contentsScale = scale
+        metalLayer.drawableSize = CGSize(width: bounds.size.width * scale, height: bounds.size.height * scale)
         
         if isSurfaceSet {
-            let scale = Float(metalLayer.contentsScale)
             az_emu_secondary_surface_set(
                 Unmanaged.passUnretained(metalLayer).toOpaque(),
-                scale
+                Float(scale)
             )
         }
     }

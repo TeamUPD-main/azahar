@@ -149,6 +149,11 @@ struct SettingsView: View {
                         range: 1.0...5.0, step: 0.25
                     )
                 }
+                
+                // External Display (AirPlay/HDMI)
+                settingsSection("External Display", icon: "tv") {
+                    ExternalDisplaySettingsSection()
+                }
 
                 settingsSection("Audio", icon: "speaker.wave.2") {
                     SettingToggle(
@@ -542,6 +547,49 @@ struct SettingSlider: View {
                 .onAppear {
                     value = az_setting_get_float(group, key, range.lowerBound)
                 }
+        }
+    }
+}
+
+/// External Display settings section
+struct ExternalDisplaySettingsSection: View {
+    @ObservedObject var displayManager = ExternalDisplayManager.shared
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Connection status
+            HStack {
+                Image(systemName: displayManager.isExternalDisplayConnected ? "tv.fill" : "tv")
+                    .foregroundStyle(displayManager.isExternalDisplayConnected ? .green : .secondary)
+                Text(displayManager.isExternalDisplayConnected ? "External Display Connected" : "No External Display")
+                    .foregroundStyle(displayManager.isExternalDisplayConnected ? .primary : .secondary)
+            }
+            .font(.subheadline)
+            .padding(.vertical, 4)
+            
+            if displayManager.isExternalDisplayConnected {
+                // Display mode picker
+                Picker("Display Mode", selection: Binding(
+                    get: { displayManager.displayMode },
+                    set: { displayManager.setDisplayMode($0) }
+                )) {
+                    ForEach(ExternalDisplayManager.ExternalDisplayMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+                
+                // Description of current mode
+                Text(displayManager.displayMode.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } else {
+                Text("Connect via AirPlay, HDMI, or USB-C to use an external display")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            }
         }
     }
 }
