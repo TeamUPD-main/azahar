@@ -283,15 +283,15 @@ private func checkEntitlement(_ entitlement: String) -> Bool {
         return false
     }
     
-    let value = SecTaskCopyValueForEntitlement(task, entitlement as CFString, nil)
-    
-    guard let value = value else {
+    guard let value = SecTaskCopyValueForEntitlement(task, entitlement as CFString, nil) else {
         return false
     }
     
-    // Check if it's a boolean type and get its value
-    if CFGetTypeID(value) == CFBooleanGetTypeID() {
-        return CFBooleanGetValue(value as CFBoolean)
+    // Handle CFTypeRef by checking if it's NSNumber or Bool (MeloNX pattern)
+    if let number = value as? NSNumber {
+        return number.boolValue
+    } else if let bool = value as? Bool {
+        return bool
     }
     
     // If entitlement exists but is not a boolean, consider it present
