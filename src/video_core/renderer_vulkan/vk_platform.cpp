@@ -286,10 +286,10 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
     if (window_info.type == Frontend::WindowSystemType::MacOS) {
         const CAMetalLayer* metal_layer = static_cast<const CAMetalLayer*>(window_info.render_surface);
         
-        // Validate Metal layer before creating Vulkan surface
+        // Handle headless mode (e.g., secondary screen on iOS when not needed)
         if (!metal_layer) {
-            LOG_CRITICAL(Render_Vulkan, "CreateSurface: Metal layer is NULL!");
-            UNREACHABLE();
+            LOG_WARNING(Render_Vulkan, "CreateSurface: Metal layer is NULL (headless mode), returning null surface");
+            return nullptr;  // Headless mode - no surface needed
         }
         
         LOG_INFO(Render_Vulkan, "CreateSurface: Metal layer valid at {}, creating Vulkan surface", 
@@ -323,7 +323,14 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
     }
 #endif
 
-    if (!surface) {
+    // Allow null surface for headless mode (secondary screen on some platforms)
+    if (!surface && window_info.type != Frontend::WindowSystemType::Headless) {
+        // Check if render_surface is null (headless/secondary screen)
+        if (!window_info.render_surface) {
+            LOG_WARNING(Render_Vulkan, "No render surface provided (headless mode), returning null surface");
+            return nullptr;
+        }
+        
         LOG_CRITICAL(Render_Vulkan, "Presentation not supported on this platform");
         UNREACHABLE();
     }
