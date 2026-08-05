@@ -14,9 +14,19 @@ struct AzaharApp: App {
     @AppStorage("hasLaunchedStikDebugThisSession") private var hasLaunchedStikDebug = false
     @State private var showWhatsNew = false
 
+import AVFoundation
+
     init() {
         // Install iOS 26 crash prevention handlers
         installJIT26BreakpointHandler()
+        
+        // Configure AVAudioSession for OpenAL
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session category: \(error)")
+        }
     }
 
     var body: some Scene {
@@ -107,6 +117,16 @@ final class AppState: ObservableObject {
         )
 
         scanGames()
+        
+        // Auto-login RetroAchievements if enabled and credentials exist
+        if az_ra_is_enabled() {
+            let username = String(cString: az_setting_get_string("RetroAchievements", "retro_achievements_username", ""))
+            let token = String(cString: az_setting_get_string("RetroAchievements", "retro_achievements_token", ""))
+            
+            if !username.isEmpty && !token.isEmpty {
+                az_ra_login_with_token(username, token)
+            }
+        }
     }
 
     func scanGames() {

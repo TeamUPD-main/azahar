@@ -23,6 +23,16 @@ struct EmulationView: View {
         AppLogger.info("=== EMULATION VIEW INITIALIZED ===")
         AppLogger.gameOperation("EmulationView created", path: game.path, titleId: game.titleId)
     }
+    
+    /// Reset both joysticks to neutral. Called on orientation change
+    /// to prevent stuck deflection from cancelled DragGestures.
+    private func resetJoysticks() {
+        az_analog_event(Int32(AZ_STICK_LEFT), 0, 0)
+        az_analog_event(Int32(AZ_STICK_C), 0, 0)
+        viewModel.leftStickPosition = .zero
+        viewModel.rightStickPosition = .zero
+        AppLogger.debug("[EmulationView] Joysticks reset on orientation change")
+    }
 
     var body: some View {
         ZStack {
@@ -143,6 +153,7 @@ struct EmulationView: View {
                 if newOrientation.isLandscape || newOrientation == .portrait {
                     isLandscape = newOrientation.isLandscape
                     AppLogger.debug("[EmulationView] Orientation changed: \(newOrientation.isLandscape ? "landscape" : "portrait")")
+                    resetJoysticks()
                 }
             }
             
