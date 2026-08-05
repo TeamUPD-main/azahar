@@ -25,8 +25,12 @@ void SetIOSPortraitMode(bool is_portrait) {
 }
 
 bool EmuWindowIOS::OnSurfaceChanged(CAMetalLayer* layer) {
-    const int temp_width = (layer == nullptr) ? 0 : static_cast<int>(layer.bounds.size.width);
-    const int temp_height = (layer == nullptr) ? 0 : static_cast<int>(layer.bounds.size.height);
+    // Use the drawable size (pixels), not bounds.size (points), so the framebuffer
+    // layout matches the actual Metal rendering surface. Otherwise the layout is
+    // computed at 1x while the drawable is at 3x, causing stretched output.
+    const CGSize drawable_size = layer ? layer.drawableSize : CGSizeZero;
+    const int temp_width = (layer == nullptr) ? 0 : static_cast<int>(drawable_size.width);
+    const int temp_height = (layer == nullptr) ? 0 : static_cast<int>(drawable_size.height);
     
     if (render_layer == layer && temp_width == static_cast<int>(window_width) &&
         temp_height == static_cast<int>(window_height)) {
@@ -81,8 +85,9 @@ EmuWindowIOS::EmuWindowIOS(CAMetalLayer* layer, bool is_secondary)
         LOG_WARNING(Frontend, "[EmuWindowIOS] CAMetalLayer is null, running headless");
         return;
     }
-    window_width = static_cast<unsigned>(layer.bounds.size.width);
-    window_height = static_cast<unsigned>(layer.bounds.size.height);
+    const CGSize drawable_size = layer.drawableSize;
+    window_width = static_cast<unsigned>(drawable_size.width);
+    window_height = static_cast<unsigned>(drawable_size.height);
     LOG_INFO(Frontend, "[EmuWindowIOS] Initial dimensions: {}x{}", window_width, window_height);
     OnSurfaceChanged(layer);
 }

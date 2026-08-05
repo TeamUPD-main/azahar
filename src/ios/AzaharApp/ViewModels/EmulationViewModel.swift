@@ -76,17 +76,22 @@ final class EmulationViewModel: ObservableObject {
         emulationThread = Task.detached(priority: .userInitiated) {
             AppLogger.info("Emulation thread started")
             
-            // Wait until surface is set. 
+            // Wait until surface is set.
             AppLogger.debug("Waiting for Metal surface to be ready...")
             var waitCount = 0
             while !az_is_surface_set() {
+                // Bail out if emulation was stopped while we were waiting
+                if Task.isCancelled {
+                    AppLogger.info("Emulation thread cancelled while waiting for surface")
+                    return
+                }
                 waitCount += 1
                 if waitCount % 10 == 0 {
                     AppLogger.debug("Still waiting for surface... (\(waitCount * 100)ms)")
                 }
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                 
-                if waitCount > 50 { // 5 second timeout
+                if waitCount > 100 { // 10 second timeout
                     AppLogger.error("Emulation", message: "Timeout waiting for Metal surface!")
                     await MainActor.run {
                         self.isRunning = false
@@ -103,6 +108,12 @@ final class EmulationViewModel: ObservableObject {
             await MainActor.run {
                 self.isLoading = false
                 AppLogger.debug("isLoading = false (loading screen hidden)")
+            }
+
+            // One more cancellation check before entering the core
+            if Task.isCancelled {
+                AppLogger.info("Emulation thread cancelled before entering core")
+                return
             }
 
             AppLogger.info("Calling az_run(\(path))")

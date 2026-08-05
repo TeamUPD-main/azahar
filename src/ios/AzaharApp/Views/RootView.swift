@@ -27,7 +27,7 @@ struct RootView: View {
                 }
                 .fullScreenCover(isPresented: $appState.isEmulating) {
                     if let game = appState.currentGame {
-                        EmulationView(game: game)
+                        EmulationHostView(game: game)
                             .onAppear {
                                 AppLogger.viewLifecycle("RootView", event: "presenting EmulationView fullScreenCover")
                             }
@@ -36,6 +36,65 @@ struct RootView: View {
         }
         .onAppear {
             AppLogger.viewLifecycle("RootView", event: "appeared")
+        }
+    }
+}
+
+/// Hosts the EmulationView in a custom UIViewController so we can control
+/// the supported orientations dynamically (e.g. force landscape when the
+/// top screen is on an external display and the bottom screen is on the iPhone).
+struct EmulationHostView: UIViewControllerRepresentable {
+    let game: Game
+    @EnvironmentObject var appState: AppState
+
+    func makeUIViewController(context: Context) -> EmulationHostController {
+        let controller = EmulationHostController(rootView: EmulationView(game: game))
+        controller.appState = appState
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: EmulationHostController, context: Context) {
+        uiViewController.appState = appState
+    }
+}
+
+/// UIHostingController subclass that enforces orientation based on the external
+/// display mode. In topScreenExternal mode the iPhone is forced into landscape
+/// so the bottom screen + touch controls are shown correctly.
+final class EmulationHostController: UIHostingController<EmulationView> {
+    var appState: AppState?
+    private var modeObserver: NSObjectProtocol?
+
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        let manager = ExternalDisplayManager.shared
+        if manager.isExternalDisplayConnected && manager.displayMode == .topScreenExternal {
+            return .landscape
+        }
+        return .all
+    }
+
+    override var shouldAutorotate: Bool { true }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Re-evaluate orientation whenever the display mode changes
+        modeObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("ExternalDisplayModeChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        setNeedsUpdateOfSupportedInterfaceOrientations()
+    }
+
+    deinit {
+        if let observer = modeObserver {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 }

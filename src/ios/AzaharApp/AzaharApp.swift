@@ -151,6 +151,22 @@ final class AppState: ObservableObject {
         AppLogger.gameOperation("User tapped game", path: game.path, titleId: game.titleId)
         AppLogger.info("Game title: \(game.title)")
         AppLogger.info("Media type: \(game.mediaType)")
+        
+        // If we're already emulating, stop the previous session first so the
+        // next launch starts from a clean state.
+        if isEmulating {
+            AppLogger.info("Already emulating - stopping previous session")
+            az_stop_emulation()
+            isEmulating = false
+            currentGame = nil
+        }
+        
+        // Verify the file exists before presenting the emulator.
+        if !FileManager.default.fileExists(atPath: game.path) {
+            AppLogger.error("ROM Loading", message: "Cannot launch \(game.title): file does not exist at \(game.path)")
+            return
+        }
+        
         AppLogger.stateChange("AppState", from: "idle", to: "launching")
         
         currentGame = game
@@ -160,9 +176,23 @@ final class AppState: ObservableObject {
         AppLogger.info("AppState.isEmulating = true")
     }
     
-    func launchHomeMenu() {
+    func launchHomeMenu() -> Bool {
         AppLogger.info("=== LAUNCHING HOME MENU ===")
         AppLogger.gameOperation("User launched Home Menu")
+        
+        // Verify the Home Menu is installed before presenting the emulator.
+        if !az_home_menu_available() {
+            AppLogger.error("Home Menu", message: "Home Menu is not installed")
+            return false
+        }
+        
+        // If we're already emulating, stop the previous session first.
+        if isEmulating {
+            AppLogger.info("Already emulating - stopping previous session")
+            az_stop_emulation()
+            isEmulating = false
+            currentGame = nil
+        }
         
         // Create a special "game" entry for Home Menu
         currentGame = Game(
@@ -175,6 +205,7 @@ final class AppState: ObservableObject {
         
         AppLogger.info("Home Menu currentGame created")
         AppLogger.info("AppState.isEmulating = true")
+        return true
     }
 
     func stopEmulation() {

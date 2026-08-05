@@ -106,6 +106,9 @@ class ExternalDisplayManager: ObservableObject {
         
         // Apply the layout based on display mode
         applyDisplayMode()
+        
+        // Notify orientation-locking controllers to re-evaluate
+        NotificationCenter.default.post(name: Notification.Name("ExternalDisplayModeChanged"), object: nil)
     }
     
     private func handleExternalDisplayDisconnected() {
@@ -119,35 +122,62 @@ class ExternalDisplayManager: ObservableObject {
         
         // Destroy secondary surface
         az_emu_secondary_surface_destroy()
+        
+        // Notify orientation-locking controllers to re-evaluate
+        NotificationCenter.default.post(name: Notification.Name("ExternalDisplayModeChanged"), object: nil)
     }
     
     func setDisplayMode(_ mode: ExternalDisplayMode) {
+        guard mode != displayMode else { return }
         displayMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "external_display_mode")
         
         if isExternalDisplayConnected {
             applyDisplayMode()
         }
+        
+        // Notify orientation-locking controllers to re-evaluate
+        NotificationCenter.default.post(name: Notification.Name("ExternalDisplayModeChanged"), object: nil)
     }
     
     private func applyDisplayMode() {
         guard let screen = externalScreen else { return }
         
-        // Update the bridge setting for secondary display layout
-        // 0 = separate windows (top on external)
-        // 1 = bottom on external
-        // 2 = both screens on external
         switch displayMode {
         case .topScreenExternal:
+            // Top screen on external display (secondary window), bottom on iPhone (primary).
+            // SeparateWindows layout + swap_screen=true means:
+            //   primary (iPhone) renders bottom screen, secondary (external) renders top screen.
+            az_setting_set_int("Layout", "layout_option", 4)      // SeparateWindows
             az_setting_set_int("Layout", "secondary_display_layout", 0)
+            az_setting_set_bool("Layout", "swap_screen", true)
         case .bottomScreenExternal:
+            // Bottom screen on external display (secondary window), top on iPhone (primary).
+            // SeparateWindows layout + swap_screen=false means:
+            //   primary (iPhone) renders top screen, secondary (external) renders bottom screen.
+            az_setting_set_int("Layout", "layout_option", 4)      // SeparateWindows
             az_setting_set_int("Layout", "secondary_display_layout", 1)
-        case .mirrorBothScreens, .externalFullscreen:
+            az_setting_set_bool("Layout", "swap_screen", false)
+        case .mirrorBothScreens:
+            // Both screens shown on both displays (same layout everywhere).
+            az_setting_set_int("Layout", "layout_option", 2)      // LargeScreen (both screens)
+            az_setting_set_int("Layout", "secondary_display_layout", 2)
+        case .externalFullscreen:
+            // Both screens on external display. Keep the standard layout so the
+            // secondary window renders both screens fullscreen; the iPhone shows controls.
+            az_setting_set_int("Layout", "layout_option", 2)      // LargeScreen (both screens)
             az_setting_set_int("Layout", "secondary_display_layout", 2)
         }
         
+        // Apply the layout changes to the running emulator
+        az_reload_settings()
+        
         // Create or update external window if needed
         setupExternalWindow(on: screen)
+        
+        // Recompute framebuffer layouts for both windows
+        let portrait = UIScreen.main.bounds.height > UIScreen.main.bounds.width
+        az_update_framebuffer(portrait)
     }
     
     private func setupExternalWindow(on screen: UIScreen) {

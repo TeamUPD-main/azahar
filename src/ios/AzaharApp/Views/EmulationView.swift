@@ -35,11 +35,9 @@ struct EmulationView: View {
                             .allowsHitTesting(true)
                     }
                     .overlay {
-                        // Hide touch controls if external display is in fullscreen mode
-                        if !externalDisplayManager.isExternalDisplayConnected || 
-                           externalDisplayManager.displayMode != .externalFullscreen {
-                            TouchControlsView(viewModel: viewModel)
-                        }
+                        // Always show touch controls on the iPhone. In externalFullscreen
+                        // mode the iPhone acts as a controller for the external display.
+                        TouchControlsView(viewModel: viewModel)
                     }
             }
             
@@ -134,9 +132,28 @@ struct EmulationView: View {
         }
         .onAppear {
             AppLogger.info("[EmulationView] onAppear - starting emulation")
+            
+            // Set up orientation observer
+            orientationObserver = NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                let newOrientation = UIDevice.current.orientation
+                if newOrientation.isLandscape || newOrientation == .portrait {
+                    isLandscape = newOrientation.isLandscape
+                    AppLogger.debug("[EmulationView] Orientation changed: \(newOrientation.isLandscape ? "landscape" : "portrait")")
+                }
+            }
+            
             viewModel.startEmulation()
         }
         .onDisappear {
+            AppLogger.info("[EmulationView] onDisappear - stopping emulation")
+            if let observer = orientationObserver {
+                NotificationCenter.default.removeObserver(observer)
+                orientationObserver = nil
+            }
             viewModel.stop()
         }
     }

@@ -16,6 +16,8 @@ struct GameListView: View {
     @State private var viewMode: ViewMode = .list
     @State private var selectedGameForProperties: Game?
     @State private var showingProperties = false
+    @State private var showHomeMenuAlert = false
+    @State private var homeMenuMessage = ""
     
     enum ViewMode: String, CaseIterable {
         case list = "List"
@@ -56,7 +58,11 @@ struct GameListView: View {
                     // Home Menu boot option
                     Section {
                         Button {
-                            appState.launchHomeMenu()
+                            let launched = appState.launchHomeMenu()
+                            if !launched {
+                                homeMenuMessage = "Home Menu is not installed. Download system files first (Settings → System Files → Home Menu)."
+                                showHomeMenuAlert = true
+                            }
                         } label: {
                             HStack(spacing: 12) {
                                 RoundedRectangle(cornerRadius: 8)
@@ -229,6 +235,11 @@ struct GameListView: View {
             if let game = selectedGameForProperties {
                 GamePropertiesView(game: game)
             }
+        }
+        .alert("Home Menu Not Installed", isPresented: $showHomeMenuAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(homeMenuMessage)
         }
     }
 
