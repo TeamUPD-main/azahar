@@ -70,12 +70,12 @@ struct TouchControlSettings: Codable {
             scale = centerButtonScale
         }
         
-        // Portrait gets 0.30x scale (smaller buttons), landscape uses full scale
-        // 393px * 0.5 * 0.30 = 59px buttons in portrait
+        // Portrait gets 0.30x scale, landscape gets 0.20x scale (ManicEmu-style smaller buttons)
+        // This prevents buttons from being enormous in landscape mode
         let isPortrait = screenSize.height > screenSize.width
-        let portraitAdjustment: CGFloat = isPortrait ? 0.30 : 1.0
+        let sizeAdjustment: CGFloat = isPortrait ? 0.30 : 0.20
         
-        return minDimension * scale * portraitAdjustment
+        return minDimension * scale * sizeAdjustment
     }
     
     enum ButtonType {

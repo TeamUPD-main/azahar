@@ -26,19 +26,27 @@ struct SettingsView: View {
                 settingsSection("Core", icon: "cpu") {
                     SettingToggle(
                         title: "Use CPU JIT",
-                        description: "Faster but uses more memory",
+                        description: "Uses Just-in-Time compiler for CPU emulation. Significantly improves performance when enabled.",
                         group: "Core", key: "use_cpu_jit"
                     )
+                    
+                    SettingSlider(
+                        title: "CPU Clock Percentage",
+                        description: "Underclocking can improve performance at risk of freezing. Overclocking may fix lag. Default: 100%",
+                        group: "Core", key: "cpu_clock_percentage",
+                        range: 25...400, step: 1
+                    )
+                    
+                    SettingToggle(
+                        title: "New 3DS Mode",
+                        description: "Enable New 3DS features (faster CPU, more RAM)",
+                        group: "System", key: "is_new_3ds"
+                    )
+                    
                     SettingToggle(
                         title: "3GX Plugin Loader",
                         description: "Enable support for 3GX plugins",
-                        group: "Core", key: "plugin_loader_enabled"
-                    )
-                    SettingSlider(
-                        title: "CPU Clock Percentage",
-                        description: "Default 100%",
-                        group: "Core", key: "cpu_clock_percentage",
-                        range: 25...400, step: 1
+                        group: "System", key: "plugin_loader_enabled"
                     )
                 }
 
@@ -51,30 +59,54 @@ struct SettingsView: View {
                             (2, "Vulkan")
                         ]
                     )
+                    
+                    SettingToggle(
+                        title: "Use Shader JIT",
+                        description: "Uses JIT engine for software shader emulation. Improves performance significantly.",
+                        group: "Renderer", key: "use_shader_jit"
+                    )
+                    
                     SettingToggle(
                         title: "Hardware Shaders",
+                        description: "Uses GPU to emulate 3DS shaders. Recommended for better performance.",
                         group: "Renderer", key: "use_hw_shader"
                     )
+                    
+                    SettingToggle(
+                        title: "Accurate Multiplication",
+                        description: "More accurate but slower shader multiplication. Fix issues in some games.",
+                        group: "Renderer", key: "shaders_accurate_mul"
+                    )
+                    
                     SettingSlider(
                         title: "Resolution Scale",
+                        description: "0 = Auto, 1 = Native (400x240), higher = upscaled",
                         group: "Renderer", key: "resolution_factor",
                         range: 0...10, step: 0.5
                     )
+                    
                     SettingToggle(
                         title: "VSync",
+                        description: "Synchronize frame output to display refresh rate",
                         group: "Renderer", key: "use_vsync"
                     )
+                    
                     SettingToggle(
                         title: "Skip Duplicate Frames",
+                        description: "Improves performance in 30fps games",
                         group: "Renderer", key: "use_skip_duplicate_frames"
                     )
+                    
                     SettingToggle(
                         title: "Disk Shader Cache",
+                        description: "Reduce stuttering by caching compiled shaders",
                         group: "Renderer", key: "use_disk_shader_cache"
                     )
+                    
                     SettingToggle(
-                        title: "Accurate Multiplication",
-                        group: "Renderer", key: "shaders_accurate_mul"
+                        title: "Async Shader Compilation",
+                        description: "Compile shaders on background threads (Vulkan only)",
+                        group: "Renderer", key: "async_shader_compilation"
                     )
                 }
 

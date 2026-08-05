@@ -26,16 +26,26 @@ struct EmulationView: View {
 
     var body: some View {
         ZStack {
-            // Main emulation view
-            MetalView(viewModel: viewModel)
-                .ignoresSafeArea()
-                .overlay {
-                    // Hide touch controls if external display is in fullscreen mode
-                    if !externalDisplayManager.isExternalDisplayConnected || 
-                       externalDisplayManager.displayMode != .externalFullscreen {
-                        TouchControlsView(viewModel: viewModel)
+            // Main emulation view with safe area padding to avoid notch
+            GeometryReader { geometry in
+                MetalView(viewModel: viewModel)
+                    .padding(.top, geometry.safeAreaInsets.top)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom)
+                    .padding(.leading, geometry.safeAreaInsets.leading)
+                    .padding(.trailing, geometry.safeAreaInsets.trailing)
+                    .overlay {
+                        // 3DS bottom screen touch overlay
+                        TouchScreenOverlay(viewModel: viewModel, geometry: geometry)
                     }
-                }
+                    .overlay {
+                        // Hide touch controls if external display is in fullscreen mode
+                        if !externalDisplayManager.isExternalDisplayConnected || 
+                           externalDisplayManager.displayMode != .externalFullscreen {
+                            TouchControlsView(viewModel: viewModel)
+                        }
+                    }
+            }
+            .ignoresSafeArea()
             
             // Loading screen overlay
             if viewModel.isLoading {
@@ -377,7 +387,57 @@ struct ExternalDisplayModeMenu: View {
             .frame(maxWidth: 500)
             .padding(24)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 20)
         }
+    }
+}
+
+/// Transparent overlay for 3DS bottom screen touch input
+/// Maps touches from screen coordinates to 3DS bottom screen framebuffer coordinates
+struct TouchScreenOverlay: View {
+    @ObservedObject var viewModel: EmulationViewModel
+    let geometry: GeometryProxy
+    
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        handleTouch(at: value.location, pressed: true)
+                    }
+                    .onEnded { value in
+                        handleTouch(at: value.location, pressed: false)
+                        az_touch_event(0, 0, false)
+                    }
+            )
+    }
+    
+    private func handleTouch(at location: CGPoint, pressed: Bool) {
+        // Convert screen coordinates to framebuffer coordinates
+        // Account for safe area insets
+        let safeAreaTop = geometry.safeAreaInsets.top
+        let safeAreaLeading = geometry.safeAreaInsets.leading
+        
+        // Adjust touch position for safe area
+        let adjustedX = location.x - safeAreaLeading
+        let adjustedY = location.y - safeAreaTop
+        
+        // Get the actual Metal view dimensions (excluding safe area)
+        let metalWidth = geometry.size.width - safeAreaLeading - geometry.safeAreaInsets.trailing
+        let metalHeight = geometry.size.height - safeAreaTop - geometry.safeAreaInsets.bottom
+        
+        // Scale to physical pixels
+        let scale = UIScreen.main.scale
+        let pixelX = Float(adjustedX * scale)
+        let pixelY = Float(adjustedY * scale)
+        
+        // Send to emulator - the C++ side will map to 3DS bottom screen coordinates
+        az_touch_event(pixelX, pixelY, pressed)
+        
+        if pressed {
+            az_touch_moved(pixelX, pixelY)
+        }
+    }
+}
     }
 }
