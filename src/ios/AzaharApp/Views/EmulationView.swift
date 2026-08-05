@@ -439,5 +439,3 @@ struct TouchScreenOverlay: View {
         }
     }
 }
-    }
-}
