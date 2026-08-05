@@ -161,37 +161,12 @@ void Config::ReadValues() {
 
     ReadSetting("Controls", Settings::values.use_artic_base_controller);
 
-    // Core
-    ReadSetting("Core", Settings::values.use_cpu_jit);
-    
-    // Test if JIT is actually available on iOS - it requires proper code signing or StikDebug
-    // JIT requires either:
-    //   1. App signed with development certificate + com.apple.security.cs.allow-jit entitlement, OR
-    //   2. StikDebug to grant JIT at runtime
-    // Without either, attempting to execute JIT-compiled code will crash with KERN_PROTECTION_FAILURE.
-    static bool jit_capability_tested = false;
-    static bool jit_available = false;
-    
-    if (!jit_capability_tested) {
-        jit_available = TestJITCapability();
-        jit_capability_tested = true;
-    }
-    
-    // Respect user's choice: only enable JIT if BOTH conditions are met:
-    // 1. User enabled "Use CPU JIT" toggle in settings
-    // 2. JIT capability test passed (proper signing OR StikDebug enabled JIT)
-    if (Settings::values.use_cpu_jit.GetValue()) {
-        if (jit_available) {
-            LOG_INFO(Config, "CPU JIT: ENABLED (user setting ON, capability test passed)");
-        } else {
-            LOG_WARNING(Config, "CPU JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
-                               "Forcing JIT OFF to prevent crashes. Enable JIT via StikDebug or sign with "
-                               "a development certificate that includes com.apple.security.cs.allow-jit entitlement.");
-            Settings::values.use_cpu_jit = false;
-        }
-    } else {
-        LOG_INFO(Config, "CPU JIT: DISABLED by user setting (interpreter mode - slower but always works)");
-    }
+    // Core - Hardcode JIT OFF on iOS like Folium does for optimal interpreter performance
+    // JIT on iOS is unreliable and causes instability. The optimized interpreter provides
+    // full-speed emulation when properly configured (VSync OFF, async presentation OFF).
+    Settings::values.use_cpu_jit = false;
+    Settings::values.use_shader_jit = false;
+    LOG_INFO(Config, "CPU/Shader JIT: HARDCODED OFF on iOS (optimized interpreter mode)");
     
     ReadSetting("Core", Settings::values.cpu_clock_percentage);
 
@@ -235,21 +210,7 @@ void Config::ReadValues() {
     ReadSetting("Renderer", Settings::values.spirv_shader_gen);
     ReadSetting("Renderer", Settings::values.disable_spirv_optimizer);
     ReadSetting("Renderer", Settings::values.use_hw_shader);
-    ReadSetting("Renderer", Settings::values.use_shader_jit);
-    
-    // Apply the same JIT availability check for shader JIT (uses same test result from CPU JIT check above)
-    // Shader JIT also requires execute permissions on dynamically allocated memory
-    if (Settings::values.use_shader_jit.GetValue()) {
-        if (jit_available) {
-            LOG_INFO(Config, "Shader JIT: ENABLED (user setting ON, capability test passed)");
-        } else {
-            LOG_WARNING(Config, "Shader JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
-                               "Forcing shader JIT OFF to prevent crashes.");
-            Settings::values.use_shader_jit = false;
-        }
-    } else {
-        LOG_INFO(Config, "Shader JIT: DISABLED by user setting (interpreter mode)");
-    }
+    // Shader JIT is hardcoded OFF above with CPU JIT
     
     ReadSetting("Renderer", Settings::values.resolution_factor);
     ReadSetting("Renderer", Settings::values.use_disk_shader_cache);
@@ -349,10 +310,12 @@ void Config::ReadValues() {
     ReadSetting("Audio", Settings::values.enable_realtime_audio);
     ReadSetting("Audio", Settings::values.simulate_headphones_plugged);
     ReadSetting("Audio", Settings::values.volume);
-    ReadSetting("Audio", Settings::values.output_type);
+    // Hardcode CoreAudio backend on iOS like Folium for optimal audio path
+    Settings::values.output_type = AudioCore::SinkType::CoreAudio;
+    Settings::values.input_type = AudioCore::InputType::CoreAudio;
     ReadSetting("Audio", Settings::values.output_device);
-    ReadSetting("Audio", Settings::values.input_type);
     ReadSetting("Audio", Settings::values.input_device);
+    LOG_INFO(Config, "Audio backend: HARDCODED to CoreAudio on iOS");
 
     // Data Storage
     ReadSetting("Data Storage", Settings::values.use_virtual_sd);

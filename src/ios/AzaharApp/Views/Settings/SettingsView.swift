@@ -24,11 +24,10 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 settingsSection("Core", icon: "cpu") {
-                    SettingToggle(
-                        title: "Use CPU JIT",
-                        description: "Uses Just-in-Time compiler for CPU emulation. Significantly improves performance when enabled.",
-                        group: "Core", key: "use_cpu_jit"
-                    )
+                    Text("JIT (Just-In-Time compilation) is disabled on iOS for optimal stability and performance. The optimized interpreter provides full-speed emulation.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
                     
                     SettingSlider(
                         title: "CPU Clock Percentage",
@@ -58,12 +57,6 @@ struct SettingsView: View {
                             (1, "OpenGL (unsupported on iOS)"),
                             (2, "Vulkan")
                         ]
-                    )
-                    
-                    SettingToggle(
-                        title: "Use Shader JIT",
-                        description: "Uses JIT engine for software shader emulation. Improves performance significantly.",
-                        group: "Renderer", key: "use_shader_jit"
                     )
                     
                     SettingToggle(

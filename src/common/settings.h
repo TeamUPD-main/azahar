@@ -483,8 +483,7 @@ struct Values {
     SwitchableSetting<bool> enable_gamemode{true, Keys::enable_gamemode};
 
     // Core
-    // JIT defaults to OFF on iOS (requires StikDebug or development signing)
-    // Users can enable via Settings > Core > Use CPU JIT toggle
+    // JIT is hardcoded OFF on iOS for optimal interpreter performance (matches Folium behavior)
 #ifdef __APPLE__
     Setting<bool> use_cpu_jit{false, Keys::use_cpu_jit};
 #else
@@ -541,12 +540,16 @@ struct Values {
     SwitchableSetting<bool> spirv_shader_gen{true, Keys::spirv_shader_gen};
     SwitchableSetting<bool> disable_spirv_optimizer{true, Keys::disable_spirv_optimizer};
     SwitchableSetting<bool> async_shader_compilation{false, Keys::async_shader_compilation};
+#if defined(__APPLE__) // iOS: Disable async presentation to reduce threading overhead
+    SwitchableSetting<bool> async_presentation{false, Keys::async_presentation};
+#else
     SwitchableSetting<bool> async_presentation{true, Keys::async_presentation};
+#endif
     SwitchableSetting<bool> use_hw_shader{true, Keys::use_hw_shader};
     SwitchableSetting<bool> use_disk_shader_cache{true, Keys::use_disk_shader_cache};
     SwitchableSetting<bool> use_skip_duplicate_frames{true, Keys::use_skip_duplicate_frames};
     SwitchableSetting<bool> shaders_accurate_mul{true, Keys::shaders_accurate_mul};
-#ifdef ANDROID // TODO: Fuck this -OS
+#if defined(ANDROID) || defined(__APPLE__) // Mobile platforms: VSync OFF for best performance
     SwitchableSetting<bool> use_vsync{false, Keys::use_vsync};
 #else
     SwitchableSetting<bool> use_vsync{true, Keys::use_vsync};
