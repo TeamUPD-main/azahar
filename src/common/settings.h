@@ -483,7 +483,13 @@ struct Values {
     SwitchableSetting<bool> enable_gamemode{true, Keys::enable_gamemode};
 
     // Core
+    // JIT defaults to OFF on iOS (requires StikDebug or development signing)
+    // Users can enable via Settings > Core > Use CPU JIT toggle
+#ifdef __APPLE__
+    Setting<bool> use_cpu_jit{false, Keys::use_cpu_jit};
+#else
     Setting<bool> use_cpu_jit{true, Keys::use_cpu_jit};
+#endif
     SwitchableSetting<s32, true> cpu_clock_percentage{100, 5, 400, Keys::cpu_clock_percentage};
     SwitchableSetting<bool> is_new_3ds{true, Keys::is_new_3ds};
     SwitchableSetting<bool> lle_applets{true, Keys::lle_applets};
@@ -547,7 +553,13 @@ struct Values {
 #endif
     SwitchableSetting<bool> use_display_refresh_rate_detection{
         true, Keys::use_display_refresh_rate_detection};
+    // Shader JIT defaults to OFF on iOS (requires StikDebug or development signing)
+    // Users can enable via Settings > Renderer > Use Shader JIT toggle
+#ifdef __APPLE__
+    Setting<bool> use_shader_jit{false, Keys::use_shader_jit};
+#else
     Setting<bool> use_shader_jit{true, Keys::use_shader_jit};
+#endif
     SwitchableSetting<u32, true> resolution_factor{1, 0, 10, Keys::resolution_factor};
     SwitchableSetting<bool> use_integer_scaling{false, Keys::use_integer_scaling};
     SwitchableSetting<double, true> frame_limit{100, 0, 1000, Keys::frame_limit};

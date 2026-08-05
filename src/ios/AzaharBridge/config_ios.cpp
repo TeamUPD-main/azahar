@@ -7,6 +7,7 @@
 #include <ranges>
 #include <sstream>
 #include <unordered_map>
+#include <sys/mman.h>
 #include <INIReader.h>
 #include <boost/hana/string.hpp>
 #include "common/file_util.h"
@@ -27,6 +28,25 @@
 namespace {
 constexpr char IOSCameraBack[] = "ios:back";
 constexpr char IOSCameraFront[] = "ios:front";
+
+// Test if JIT execution is actually allowed on this iOS device
+// Returns true if JIT will work, false if it will crash due to code signing
+bool TestJITCapability() {
+    // Try to allocate a small JIT memory region
+    void* test_mem = mmap(nullptr, 4096, PROT_READ | PROT_WRITE, 
+                          MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT, -1, 0);
+    
+    if (test_mem == MAP_FAILED) {
+        LOG_WARNING(Config, "JIT test failed: mmap with MAP_JIT flag failed (errno={})", errno);
+        return false;
+    }
+    
+    // Clean up test allocation
+    munmap(test_mem, 4096);
+    
+    LOG_INFO(Config, "JIT capability test passed - JIT execution is available");
+    return true;
+}
 } // Anonymous namespace
 
 Config::Config() {
@@ -143,6 +163,36 @@ void Config::ReadValues() {
 
     // Core
     ReadSetting("Core", Settings::values.use_cpu_jit);
+    
+    // Test if JIT is actually available on iOS - it requires proper code signing or StikDebug
+    // JIT requires either:
+    //   1. App signed with development certificate + com.apple.security.cs.allow-jit entitlement, OR
+    //   2. StikDebug to grant JIT at runtime
+    // Without either, attempting to execute JIT-compiled code will crash with KERN_PROTECTION_FAILURE.
+    static bool jit_capability_tested = false;
+    static bool jit_available = false;
+    
+    if (!jit_capability_tested) {
+        jit_available = TestJITCapability();
+        jit_capability_tested = true;
+    }
+    
+    // Respect user's choice: only enable JIT if BOTH conditions are met:
+    // 1. User enabled "Use CPU JIT" toggle in settings
+    // 2. JIT capability test passed (proper signing OR StikDebug enabled JIT)
+    if (Settings::values.use_cpu_jit.GetValue()) {
+        if (jit_available) {
+            LOG_INFO(Config, "CPU JIT: ENABLED (user setting ON, capability test passed)");
+        } else {
+            LOG_WARNING(Config, "CPU JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
+                               "Forcing JIT OFF to prevent crashes. Enable JIT via StikDebug or sign with "
+                               "a development certificate that includes com.apple.security.cs.allow-jit entitlement.");
+            Settings::values.use_cpu_jit = false;
+        }
+    } else {
+        LOG_INFO(Config, "CPU JIT: DISABLED by user setting (interpreter mode - slower but always works)");
+    }
+    
     ReadSetting("Core", Settings::values.cpu_clock_percentage);
 
     // Renderer
@@ -186,6 +236,21 @@ void Config::ReadValues() {
     ReadSetting("Renderer", Settings::values.disable_spirv_optimizer);
     ReadSetting("Renderer", Settings::values.use_hw_shader);
     ReadSetting("Renderer", Settings::values.use_shader_jit);
+    
+    // Apply the same JIT availability check for shader JIT (uses same test result from CPU JIT check above)
+    // Shader JIT also requires execute permissions on dynamically allocated memory
+    if (Settings::values.use_shader_jit.GetValue()) {
+        if (jit_available) {
+            LOG_INFO(Config, "Shader JIT: ENABLED (user setting ON, capability test passed)");
+        } else {
+            LOG_WARNING(Config, "Shader JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
+                               "Forcing shader JIT OFF to prevent crashes.");
+            Settings::values.use_shader_jit = false;
+        }
+    } else {
+        LOG_INFO(Config, "Shader JIT: DISABLED by user setting (interpreter mode)");
+    }
+    
     ReadSetting("Renderer", Settings::values.resolution_factor);
     ReadSetting("Renderer", Settings::values.use_disk_shader_cache);
     ReadSetting("Renderer", Settings::values.use_vsync);
