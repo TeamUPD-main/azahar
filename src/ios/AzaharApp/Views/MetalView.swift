@@ -28,7 +28,7 @@ struct MetalView: UIViewRepresentable {
 /// Creates a CAMetalLayer and hands it to the bridge.
 final class MetalViewUIView: UIView {
     var viewModel: EmulationViewModel
-    private var safeAreaInsets: EdgeInsets = EdgeInsets()
+    private var customSafeAreaInsets: EdgeInsets = EdgeInsets()
 
     private var displayLink: CADisplayLink?
     private var isSurfaceSet = false
@@ -40,8 +40,8 @@ final class MetalViewUIView: UIView {
     }
     
     func updateSafeArea(_ insets: EdgeInsets) {
-        guard insets != safeAreaInsets else { return }
-        safeAreaInsets = insets
+        guard insets != customSafeAreaInsets else { return }
+        customSafeAreaInsets = insets
         if isSurfaceSet {
             updateLayout()
         }
@@ -76,8 +76,8 @@ final class MetalViewUIView: UIView {
         metalLayer.frame = bounds
         
         // Calculate content rect accounting for safe area
-        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
-        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+        let contentWidth = bounds.width - customSafeAreaInsets.leading - customSafeAreaInsets.trailing
+        let contentHeight = bounds.height - customSafeAreaInsets.top - customSafeAreaInsets.bottom
         
         let scale = UIScreen.main.scale
         metalLayer.contentsScale = scale
@@ -98,8 +98,8 @@ final class MetalViewUIView: UIView {
         az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), Float(scale))
         
         // Use content dimensions (minus safe area) for framebuffer layout
-        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
-        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+        let contentWidth = bounds.width - customSafeAreaInsets.leading - customSafeAreaInsets.trailing
+        let contentHeight = bounds.height - customSafeAreaInsets.top - customSafeAreaInsets.bottom
         let portrait = contentHeight > contentWidth
         
         az_set_portrait_mode(portrait)
@@ -112,8 +112,8 @@ final class MetalViewUIView: UIView {
             return 
         }
 
-        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
-        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+        let contentWidth = bounds.width - customSafeAreaInsets.leading - customSafeAreaInsets.trailing
+        let contentHeight = bounds.height - customSafeAreaInsets.top - customSafeAreaInsets.bottom
         AppLogger.info("[MetalView] Starting presentation - setting up Metal surface")
         AppLogger.debug("[MetalView] Bounds: \(bounds), Content: \(contentWidth)x\(contentHeight), Scale: \(UIScreen.main.scale)")
         

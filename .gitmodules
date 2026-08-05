@@ -112,3 +112,6 @@
 [submodule "externals/libzip"]
 	path = externals/libzip
 	url = https://github.com/nih-at/libzip.git
+[submodule "externals/microtar"]
+	path = externals/microtar
+	url = https://github.com/azahar-emu/microtar

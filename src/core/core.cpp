@@ -238,6 +238,7 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
                 current_core_to_execute->Step();
             }
         }
+        Reschedule();
     } else {
         // Now all cores are at the same global time. So we will run them one after the other
         // with a max slice that is the minimum of all max slices of all cores
@@ -274,10 +275,9 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
                 }
             }
             max_slice = cpu_core->GetTimer().GetTicks() - start_ticks;
+            Reschedule();
         }
     }
-
-    Reschedule();
 
     return status;
 }
@@ -490,7 +490,7 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
 
 void System::PrepareReschedule() {
     running_core->PrepareReschedule();
-    reschedule_pending = true;
+    curr_core_reschedule_pending = true;
 }
 
 PerfStats::Results System::GetAndResetPerfStats() {
@@ -507,15 +507,12 @@ double System::GetStableFrameTimeScale() {
 }
 
 void System::Reschedule() {
-    if (!reschedule_pending) {
+    if (!curr_core_reschedule_pending) {
         return;
     }
 
-    reschedule_pending = false;
-    for (const auto& core : cpu_cores) {
-        LOG_TRACE(Core_ARM11, "Reschedule core {}", core->GetID());
-        kernel->GetThreadManager(core->GetID()).Reschedule();
-    }
+    curr_core_reschedule_pending = false;
+    kernel->GetThreadManager(running_core->GetID()).Reschedule();
 }
 
 System::ResultStatus System::Init(Frontend::EmuWindow& emu_window,
