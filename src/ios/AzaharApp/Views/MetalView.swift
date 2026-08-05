@@ -53,15 +53,17 @@ final class MetalViewUIView: UIView {
         metalLayer.device = MTLCreateSystemDefaultDevice()
         metalLayer.pixelFormat = .bgra8Unorm
         metalLayer.framebufferOnly = true
-        metalLayer.contentsScale = UIScreen.main.scale
-        metalLayer.drawableSize = bounds.size
+        let scale = UIScreen.main.scale
+        metalLayer.contentsScale = scale
+        metalLayer.drawableSize = CGSize(width: bounds.size.width * scale, height: bounds.size.height * scale)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         metalLayer.frame = bounds
-        metalLayer.contentsScale = UIScreen.main.scale
-        metalLayer.drawableSize = bounds.size
+        let scale = UIScreen.main.scale
+        metalLayer.contentsScale = scale
+        metalLayer.drawableSize = CGSize(width: bounds.size.width * scale, height: bounds.size.height * scale)
 
         // Start presenting after first layout when we have valid dimensions
         if !isSurfaceSet && bounds.size.width > 0 && bounds.size.height > 0 {
@@ -69,8 +71,7 @@ final class MetalViewUIView: UIView {
             startPresenting()
         } else if isSurfaceSet {
             // Update existing surface with new dimensions
-            let scale = Float(UIScreen.main.scale)
-            az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), scale)
+            az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), Float(scale))
             let portrait = bounds.height > bounds.width
             az_set_portrait_mode(portrait)
             az_update_framebuffer(portrait)

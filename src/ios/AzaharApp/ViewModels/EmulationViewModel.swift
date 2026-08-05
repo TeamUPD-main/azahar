@@ -166,6 +166,7 @@ final class EmulationViewModel: ObservableObject {
         let current = az_setting_get_int("Layout", "layout_option", 2)
         let next = (current + 1) % 6
         az_setting_set_int("Layout", "layout_option", next)
+        az_reload_settings()
         az_update_framebuffer(UIScreen.main.bounds.height > UIScreen.main.bounds.width)
     }
 
@@ -186,6 +187,7 @@ final class EmulationViewModel: ObservableObject {
     func swapScreens() {
         let current = az_setting_get_bool("Layout", "swap_screen", false)
         az_setting_set_bool("Layout", "swap_screen", !current)
+        az_reload_settings()
         az_update_framebuffer(UIScreen.main.bounds.height > UIScreen.main.bounds.width)
     }
     

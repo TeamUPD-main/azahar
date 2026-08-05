@@ -26,16 +26,13 @@ struct EmulationView: View {
 
     var body: some View {
         ZStack {
-            // Main emulation view with safe area padding to avoid notch
+            // Main emulation view respecting safe area to avoid notch
             GeometryReader { geometry in
                 MetalView(viewModel: viewModel)
-                    .padding(.top, geometry.safeAreaInsets.top)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom)
-                    .padding(.leading, geometry.safeAreaInsets.leading)
-                    .padding(.trailing, geometry.safeAreaInsets.trailing)
                     .overlay {
                         // 3DS bottom screen touch overlay
                         TouchScreenOverlay(viewModel: viewModel, geometry: geometry)
+                            .allowsHitTesting(true)
                     }
                     .overlay {
                         // Hide touch controls if external display is in fullscreen mode
@@ -45,7 +42,6 @@ struct EmulationView: View {
                         }
                     }
             }
-            .ignoresSafeArea()
             
             // Loading screen overlay
             if viewModel.isLoading {
@@ -413,23 +409,11 @@ struct TouchScreenOverlay: View {
     }
     
     private func handleTouch(at location: CGPoint, pressed: Bool) {
-        // Convert screen coordinates to framebuffer coordinates
-        // Account for safe area insets
-        let safeAreaTop = geometry.safeAreaInsets.top
-        let safeAreaLeading = geometry.safeAreaInsets.leading
-        
-        // Adjust touch position for safe area
-        let adjustedX = location.x - safeAreaLeading
-        let adjustedY = location.y - safeAreaTop
-        
-        // Get the actual Metal view dimensions (excluding safe area)
-        let metalWidth = geometry.size.width - safeAreaLeading - geometry.safeAreaInsets.trailing
-        let metalHeight = geometry.size.height - safeAreaTop - geometry.safeAreaInsets.bottom
-        
-        // Scale to physical pixels
+        // Convert screen coordinates to framebuffer coordinates (pixels)
+        // The Metal layer drawableSize is in pixels (bounds * scale)
         let scale = UIScreen.main.scale
-        let pixelX = Float(adjustedX * scale)
-        let pixelY = Float(adjustedY * scale)
+        let pixelX = Float(location.x * scale)
+        let pixelY = Float(location.y * scale)
         
         // Send to emulator - the C++ side will map to 3DS bottom screen coordinates
         az_touch_event(pixelX, pixelY, pressed)
