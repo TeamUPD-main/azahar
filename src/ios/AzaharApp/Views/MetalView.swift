@@ -10,6 +10,7 @@ import UIKit
 /// via a CADisplayLink. This is the SwiftUI-side rendering surface.
 struct MetalView: UIViewRepresentable {
     @ObservedObject var viewModel: EmulationViewModel
+    var safeArea: EdgeInsets
 
     func makeUIView(context: Context) -> MetalViewUIView {
         AppLogger.info("[MetalView] Creating MetalViewUIView")
@@ -19,6 +20,7 @@ struct MetalView: UIViewRepresentable {
 
     func updateUIView(_ uiView: MetalViewUIView, context: Context) {
         uiView.viewModel = viewModel
+        uiView.updateSafeArea(safeArea)
     }
 }
 
@@ -26,6 +28,7 @@ struct MetalView: UIViewRepresentable {
 /// Creates a CAMetalLayer and hands it to the bridge.
 final class MetalViewUIView: UIView {
     var viewModel: EmulationViewModel
+    private var safeAreaInsets: EdgeInsets = EdgeInsets()
 
     private var displayLink: CADisplayLink?
     private var isSurfaceSet = false
@@ -34,6 +37,14 @@ final class MetalViewUIView: UIView {
         self.viewModel = viewModel
         super.init(frame: .zero)
         setupLayer()
+    }
+    
+    func updateSafeArea(_ insets: EdgeInsets) {
+        guard insets != safeAreaInsets else { return }
+        safeAreaInsets = insets
+        if isSurfaceSet {
+            updateLayout()
+        }
     }
 
     @available(*, unavailable)
@@ -60,22 +71,39 @@ final class MetalViewUIView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        
+        // Metal layer fills entire bounds
         metalLayer.frame = bounds
+        
+        // Calculate content rect accounting for safe area
+        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
+        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+        
         let scale = UIScreen.main.scale
         metalLayer.contentsScale = scale
+        // Drawable size is full bounds in pixels
         metalLayer.drawableSize = CGSize(width: bounds.size.width * scale, height: bounds.size.height * scale)
 
         // Start presenting after first layout when we have valid dimensions
         if !isSurfaceSet && bounds.size.width > 0 && bounds.size.height > 0 {
-            AppLogger.info("[MetalView] layoutSubviews with valid bounds: \(bounds) - calling startPresenting()")
+            AppLogger.info("[MetalView] layoutSubviews with valid bounds: \(bounds), content: \(contentWidth)x\(contentHeight) - calling startPresenting()")
             startPresenting()
         } else if isSurfaceSet {
-            // Update existing surface with new dimensions
-            az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), Float(scale))
-            let portrait = bounds.height > bounds.width
-            az_set_portrait_mode(portrait)
-            az_update_framebuffer(portrait)
+            updateLayout()
         }
+    }
+    
+    private func updateLayout() {
+        let scale = UIScreen.main.scale
+        az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), Float(scale))
+        
+        // Use content dimensions (minus safe area) for framebuffer layout
+        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
+        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+        let portrait = contentHeight > contentWidth
+        
+        az_set_portrait_mode(portrait)
+        az_update_framebuffer(portrait)
     }
 
     func startPresenting() {
@@ -84,8 +112,10 @@ final class MetalViewUIView: UIView {
             return 
         }
 
+        let contentWidth = bounds.width - safeAreaInsets.leading - safeAreaInsets.trailing
+        let contentHeight = bounds.height - safeAreaInsets.top - safeAreaInsets.bottom
         AppLogger.info("[MetalView] Starting presentation - setting up Metal surface")
-        AppLogger.debug("[MetalView] Bounds: \(bounds), Scale: \(UIScreen.main.scale)")
+        AppLogger.debug("[MetalView] Bounds: \(bounds), Content: \(contentWidth)x\(contentHeight), Scale: \(UIScreen.main.scale)")
         
         let scale = Float(UIScreen.main.scale)
         az_emu_surface_set(Unmanaged.passUnretained(metalLayer).toOpaque(), scale)
@@ -93,7 +123,7 @@ final class MetalViewUIView: UIView {
         
         AppLogger.info("[MetalView] Metal surface set successfully!")
 
-        let portrait = bounds.height > bounds.width
+        let portrait = contentHeight > contentWidth
         az_set_portrait_mode(portrait)
         az_update_framebuffer(portrait)
         

@@ -26,9 +26,9 @@ struct EmulationView: View {
 
     var body: some View {
         ZStack {
-            // Main emulation view respecting safe area to avoid notch
+            // Main emulation view - use safe area to avoid notch/Dynamic Island
             GeometryReader { geometry in
-                MetalView(viewModel: viewModel)
+                MetalView(viewModel: viewModel, safeArea: geometry.safeAreaInsets)
                     .overlay {
                         // 3DS bottom screen touch overlay
                         TouchScreenOverlay(viewModel: viewModel, geometry: geometry)
