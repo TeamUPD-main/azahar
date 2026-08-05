@@ -274,7 +274,8 @@ struct SystemFilesDownloaderView: View {
         print("[NUS] Starting download: region=\(selectedRegion), type=\(selectedSystemType)")
         
         // Get title IDs for the selected region and system type
-        let maxTitles = 100
+        // Increased from 100 to 250 to handle all system titles (196 titles exist)
+        let maxTitles = 250
         var titleIds = [Int64](repeating: 0, count: maxTitles)
         let count = az_get_system_title_ids(Int32(selectedSystemType), Int32(selectedRegion), &titleIds, Int32(maxTitles))
         
@@ -314,18 +315,19 @@ struct SystemFilesDownloaderView: View {
                 
                 print("[NUS] Downloading title \(index + 1)/\(totalTitles): \(String(format: "%016llX", titleId))")
                 
-                // Try downloading with retries
+                // Try downloading with retries (increased from 3 to 5 for reliability)
                 var success = false
-                for attempt in 0..<3 {
+                for attempt in 0..<5 {
                     let result = az_download_title_from_nus(UInt64(bitPattern: titleId))
                     if result == 0 {
                         success = true
                         print("[NUS] Successfully downloaded title \(String(format: "%016llX", titleId))")
                         break
                     } else {
-                        print("[NUS] Failed to download title \(String(format: "%016llX", titleId)), attempt \(attempt + 1)/3, error: \(result)")
-                        if attempt < 2 {
-                            Thread.sleep(forTimeInterval: 3.0)
+                        print("[NUS] Failed to download title \(String(format: "%016llX", titleId)), attempt \(attempt + 1)/5, error: \(result)")
+                        if attempt < 4 {
+                            // Exponential backoff: 1s, 2s, 4s, 8s
+                            Thread.sleep(forTimeInterval: Double(1 << attempt))
                         }
                     }
                 }
@@ -334,6 +336,7 @@ struct SystemFilesDownloaderView: View {
                     successCount += 1
                 } else {
                     failedTitles.append(titleId)
+                    print("[NUS] Permanently failed title \(String(format: "%016llX", titleId)) after all retries")
                 }
                 
                 DispatchQueue.main.async {
@@ -350,10 +353,12 @@ struct SystemFilesDownloaderView: View {
                     self.alertMessage = "Successfully downloaded and installed all \(successCount) system files."
                 } else {
                     self.alertTitle = "Download Completed with Errors"
-                    self.alertMessage = "Successfully downloaded \(successCount) of \(totalTitles) titles. \(failedTitles.count) failed."
+                    let failedList = failedTitles.prefix(5).map { String(format: "%016llX", $0) }.joined(separator: "\n")
+                    let more = failedTitles.count > 5 ? "\n...and \(failedTitles.count - 5) more" : ""
+                    self.alertMessage = "Successfully downloaded \(successCount) of \(totalTitles) titles.\n\nFailed titles (\(failedTitles.count)):\n\(failedList)\(more)\n\nNote: Some titles (like Mii Maker, Region Manifest, Bad Word List) may not be available on NUS for all regions. This is normal and won't affect most games."
                 }
                 self.showAlert = true
-                print("[NUS] Download complete: \(successCount)/\(totalTitles) succeeded")
+                print("[NUS] Download complete: \(successCount)/\(totalTitles) succeeded, \(failedTitles.count) failed")
             }
         }
     }
