@@ -132,10 +132,12 @@ RendererVulkan::RendererVulkan(Core::System& system, Pica::PicaCore& pica_,
     CompileShaders();
     BuildLayouts();
     BuildPipelines();
-    if (secondary_window) {
+    if (secondary_window && secondary_window->GetWindowInfo().render_surface) {
         secondary_present_window_ptr = std::make_unique<PresentWindow>(
             *secondary_window, instance, scheduler, IsLowRefreshRate());
         LOG_INFO(Render_Vulkan, "Secondary window initialized");
+    } else if (secondary_window) {
+        LOG_INFO(Render_Vulkan, "Secondary window is headless (null render_surface), skipping PresentWindow creation");
     }
     LOG_INFO(Render_Vulkan, "Vulkan renderer initialization complete");
 }
@@ -1153,26 +1155,30 @@ void RendererVulkan::SwapBuffers() {
     if (Settings::values.layout_option.GetValue() == Settings::LayoutOption::SeparateWindows) {
         ASSERT(secondary_window);
         const auto& secondary_layout = secondary_window->GetFramebufferLayout();
-        if (!secondary_present_window_ptr) {
+        if (!secondary_present_window_ptr && secondary_window->GetWindowInfo().render_surface) {
             secondary_present_window_ptr = std::make_unique<PresentWindow>(
                 *secondary_window, instance, scheduler, IsLowRefreshRate());
         }
-        isSecondaryWindow = true;
-        RenderToWindow(*secondary_present_window_ptr, secondary_layout, false);
-        secondary_window->PollEvents();
+        if (secondary_present_window_ptr) {
+            isSecondaryWindow = true;
+            RenderToWindow(*secondary_present_window_ptr, secondary_layout, false);
+            secondary_window->PollEvents();
+        }
     }
 #endif
 
 #ifdef ANDROID
     if (secondary_window) {
         const auto& secondary_layout = secondary_window->GetFramebufferLayout();
-        if (!secondary_present_window_ptr) {
+        if (!secondary_present_window_ptr && secondary_window->GetWindowInfo().render_surface) {
             secondary_present_window_ptr = std::make_unique<PresentWindow>(
                 *secondary_window, instance, scheduler, IsLowRefreshRate());
         }
-        isSecondaryWindow = true;
-        RenderToWindow(*secondary_present_window_ptr, secondary_layout, false);
-        secondary_window->PollEvents();
+        if (secondary_present_window_ptr) {
+            isSecondaryWindow = true;
+            RenderToWindow(*secondary_present_window_ptr, secondary_layout, false);
+            secondary_window->PollEvents();
+        }
     }
 #endif
     if (!screenRendered) {
