@@ -15,6 +15,7 @@
 #endif
 
 #include <memory>
+#include <optional>
 #include <vector>
 #include <boost/container/static_vector.hpp>
 #include <fmt/format.h>
@@ -61,12 +62,13 @@ auto EnsureMainThread(Func&& func) -> decltype(func()) {
             func();
         });
     } else {
-        __block ReturnType result;
-        __block std::exception_ptr exception;
+        // For move-only types (like vk::UniqueHandle), use std::optional to avoid __block copy issues
+        std::optional<ReturnType> result;
+        std::exception_ptr exception;
         
         dispatch_sync(dispatch_get_main_queue(), ^{
             try {
-                result = func();
+                result.emplace(func());
             } catch (...) {
                 exception = std::current_exception();
             }
@@ -75,7 +77,7 @@ auto EnsureMainThread(Func&& func) -> decltype(func()) {
         if (exception) {
             std::rethrow_exception(exception);
         }
-        return result;
+        return std::move(*result);
     }
 }
 #endif
