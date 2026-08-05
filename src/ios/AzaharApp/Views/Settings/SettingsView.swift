@@ -35,6 +35,12 @@ struct SettingsView: View {
                         group: "Core", key: "use_cpu_jit"
                     )
                     
+                    SettingToggle(
+                        title: "Use FastInterp",
+                        description: "Optimized cached interpreter. Disable to use legacy DynCom interpreter (slower).",
+                        group: "Core", key: "use_fastinterp"
+                    )
+                    
                     SettingSlider(
                         title: "CPU Clock Percentage",
                         description: "Underclocking can improve performance at risk of freezing. Overclocking may fix lag. Default: 100%",
