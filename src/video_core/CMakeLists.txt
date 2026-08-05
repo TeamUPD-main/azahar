@@ -214,6 +214,11 @@ target_include_directories(video_core PRIVATE ${HOST_SHADERS_INCLUDE})
 
 create_target_directory_groups(video_core)
 
+# Define CITRA_IOS for iOS builds so vk_platform.cpp can use iOS-specific paths
+if (IOS)
+    target_compile_definitions(video_core PUBLIC CITRA_IOS)
+endif()
+
 target_link_libraries(video_core PUBLIC citra_common citra_core)
 target_link_libraries(video_core PRIVATE Boost::serialization dds-ktx json-headers nihstro-headers tsl::robin_map)
 
