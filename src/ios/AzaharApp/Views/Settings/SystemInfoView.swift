@@ -283,8 +283,9 @@ private func checkEntitlement(_ entitlement: String) -> Bool {
         return false
     }
     
-    var error: Unmanaged<CFError>?
-    guard let value = SecTaskCopyValueForEntitlement(task, entitlement as CFString, &error) else {
+    let value = SecTaskCopyValueForEntitlement(task, entitlement as CFString, nil)
+    
+    guard let value = value else {
         return false
     }
     
