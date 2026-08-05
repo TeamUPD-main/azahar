@@ -289,10 +289,12 @@ private func checkEntitlement(_ entitlement: String) -> Bool {
         return false
     }
     
-    if CFGetTypeID(value) == CFBooleanGetTypeID(), let boolean = value as? CFBoolean {
-        return CFBooleanGetValue(boolean)
+    // Check if it's a boolean type and get its value
+    if CFGetTypeID(value) == CFBooleanGetTypeID() {
+        return CFBooleanGetValue(value as CFBoolean)
     }
     
+    // If entitlement exists but is not a boolean, consider it present
     return true
 }
 
