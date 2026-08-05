@@ -30,21 +30,31 @@ constexpr char IOSCameraBack[] = "ios:back";
 constexpr char IOSCameraFront[] = "ios:front";
 
 // Test if JIT execution is actually allowed on this iOS device
-// Returns true if JIT will work, false if it will crash due to code signing
+// Returns true if JIT will work (StikDebug active or proper signing), false otherwise
 bool TestJITCapability() {
-    // Try to allocate a small JIT memory region
+    // Try to allocate a small JIT memory region with MAP_JIT flag
     void* test_mem = mmap(nullptr, 4096, PROT_READ | PROT_WRITE, 
                           MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT, -1, 0);
     
     if (test_mem == MAP_FAILED) {
-        LOG_WARNING(Config, "JIT test failed: mmap with MAP_JIT flag failed (errno={})", errno);
+        LOG_WARNING(Config, "JIT test failed: mmap with MAP_JIT flag failed (errno={}). "
+                           "JIT is NOT available - StikDebug not active or missing entitlement.", errno);
+        return false;
+    }
+    
+    // Try to actually make the memory executable - this is the real test
+    // StikDebug grants the process the dynamic-codesigning entitlement which allows this
+    if (mprotect(test_mem, 4096, PROT_READ | PROT_EXEC) != 0) {
+        LOG_WARNING(Config, "JIT test failed: mprotect to PROT_EXEC failed (errno={}). "
+                           "JIT is NOT available - StikDebug not active.", errno);
+        munmap(test_mem, 4096);
         return false;
     }
     
     // Clean up test allocation
     munmap(test_mem, 4096);
     
-    LOG_INFO(Config, "JIT capability test passed - JIT execution is available");
+    LOG_INFO(Config, "JIT capability test PASSED - StikDebug is active or app is properly signed with JIT entitlement");
     return true;
 }
 } // Anonymous namespace
@@ -161,16 +171,60 @@ void Config::ReadValues() {
 
     ReadSetting("Controls", Settings::values.use_artic_base_controller);
 
-    // Core - Hardcode JIT OFF on iOS like Folium does for optimal interpreter performance
-    // JIT on iOS is unreliable and causes instability. The optimized interpreter provides
-    // full-speed emulation when properly configured (VSync OFF, async presentation OFF).
-    Settings::values.use_cpu_jit = false;
-    Settings::values.use_shader_jit = false;
-    LOG_INFO(Config, "CPU/Shader JIT: HARDCODED OFF on iOS (optimized interpreter mode)");
+    // Core - Read JIT settings and check if JIT is actually available
+    ReadSetting("Core", Settings::values.use_cpu_jit);
     
-    // Enable FastInterp (cached interpreter with computed goto) for best non-JIT performance
-    Settings::values.use_fastinterp = true;
-    LOG_INFO(Config, "FastInterp: ENABLED (optimized cached interpreter, faster than DynCom)");
+    // Test if JIT is actually available on iOS - it requires proper code signing or StikDebug
+    // JIT requires either:
+    //   1. App signed with development certificate + com.apple.security.cs.allow-jit entitlement, OR
+    //   2. StikDebug to grant JIT at runtime
+    // Without either, attempting to execute JIT-compiled code will crash with KERN_PROTECTION_FAILURE.
+    static bool jit_capability_tested = false;
+    static bool jit_available = false;
+    
+    if (!jit_capability_tested) {
+        jit_available = TestJITCapability();
+        jit_capability_tested = true;
+    }
+    
+    // Respect user's choice: only enable JIT if BOTH conditions are met:
+    // 1. User enabled "Use CPU JIT" toggle in settings
+    // 2. JIT capability test passed (proper signing OR StikDebug enabled JIT)
+    if (Settings::values.use_cpu_jit.GetValue()) {
+        if (jit_available) {
+            LOG_INFO(Config, "CPU JIT: ENABLED (user setting ON, capability test passed)");
+            // Disable FastInterp when JIT is available and requested
+            Settings::values.use_fastinterp = false;
+        } else {
+            LOG_WARNING(Config, "CPU JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
+                               "Forcing JIT OFF to prevent crashes. Enable JIT via StikDebug or sign with "
+                               "a development certificate that includes com.apple.security.cs.allow-jit entitlement.");
+            Settings::values.use_cpu_jit = false;
+            // Enable FastInterp as fallback
+            Settings::values.use_fastinterp = true;
+        }
+    } else {
+        LOG_INFO(Config, "CPU JIT: DISABLED by user setting (using optimized interpreter)");
+        // Enable FastInterp when JIT is disabled
+        Settings::values.use_fastinterp = true;
+    }
+    
+    // Shader JIT follows same logic as CPU JIT
+    ReadSetting("Renderer", Settings::values.use_shader_jit);
+    if (Settings::values.use_shader_jit.GetValue()) {
+        if (jit_available) {
+            LOG_INFO(Config, "Shader JIT: ENABLED (user setting ON, capability test passed)");
+        } else {
+            LOG_WARNING(Config, "Shader JIT: Requested but NOT AVAILABLE due to code signing restrictions. "
+                               "Forcing shader JIT OFF to prevent crashes.");
+            Settings::values.use_shader_jit = false;
+        }
+    } else {
+        LOG_INFO(Config, "Shader JIT: DISABLED by user setting (using software shader interpreter)");
+    }
+    
+    LOG_INFO(Config, "FastInterp: {} (optimized cached interpreter)", 
+             Settings::values.use_fastinterp.GetValue() ? "ENABLED" : "DISABLED");
     
     ReadSetting("Core", Settings::values.cpu_clock_percentage);
 
@@ -214,7 +268,7 @@ void Config::ReadValues() {
     ReadSetting("Renderer", Settings::values.spirv_shader_gen);
     ReadSetting("Renderer", Settings::values.disable_spirv_optimizer);
     ReadSetting("Renderer", Settings::values.use_hw_shader);
-    // Shader JIT is hardcoded OFF above with CPU JIT
+    // Shader JIT is handled above in Core section with CPU JIT
     
     ReadSetting("Renderer", Settings::values.resolution_factor);
     ReadSetting("Renderer", Settings::values.use_disk_shader_cache);

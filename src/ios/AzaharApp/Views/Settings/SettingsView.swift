@@ -24,10 +24,16 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 settingsSection("Core", icon: "cpu") {
-                    Text("JIT (Just-In-Time compilation) is disabled on iOS for optimal stability and performance. The optimized interpreter provides full-speed emulation.")
+                    Text("FastInterp (optimized cached interpreter) is used by default. JIT can be enabled if you have StikDebug or proper code signing.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.vertical, 4)
+                    
+                    SettingToggle(
+                        title: "Use CPU JIT",
+                        description: "Just-in-Time compiler for CPU. Requires StikDebug or development signing. FastInterp used if unavailable.",
+                        group: "Core", key: "use_cpu_jit"
+                    )
                     
                     SettingSlider(
                         title: "CPU Clock Percentage",
@@ -57,6 +63,12 @@ struct SettingsView: View {
                             (1, "OpenGL (unsupported on iOS)"),
                             (2, "Vulkan")
                         ]
+                    )
+                    
+                    SettingToggle(
+                        title: "Use Shader JIT",
+                        description: "JIT for software shader emulation. Requires StikDebug or development signing.",
+                        group: "Renderer", key: "use_shader_jit"
                     )
                     
                     SettingToggle(
