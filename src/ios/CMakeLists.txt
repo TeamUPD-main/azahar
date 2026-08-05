@@ -61,6 +61,7 @@ set_target_properties(azahar_ios PROPERTIES
 # ---------------------------------------------------------------------------
 set(AZAHAR_SWIFT_SOURCES
     AzaharApp/AzaharApp.swift
+    AzaharApp/AppDelegate.swift
     AzaharApp/AzaharBridge.swift
     AzaharApp/Models/Game.swift
     AzaharApp/Models/WhatsNewEntry.swift

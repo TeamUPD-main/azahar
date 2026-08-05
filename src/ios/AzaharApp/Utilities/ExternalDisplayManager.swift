@@ -82,7 +82,7 @@ class ExternalDisplayManager: ObservableObject {
         }
     }
     
-    private func handleExternalDisplayConnected(_ screen: UIScreen) {
+    func handleExternalDisplayConnected(_ screen: UIScreen) {
         print("External display connected: \(screen.bounds)")
         
         externalScreen = screen
@@ -104,14 +104,19 @@ class ExternalDisplayManager: ObservableObject {
             displayMode = mode
         }
         
-        // Apply the layout based on display mode
-        applyDisplayMode()
+        // Create the external window if the scene delegate hasn't done it already.
+        // Idempotent: if a window already exists it just applies the display mode.
+        if externalWindow == nil {
+            setupExternalWindow(on: screen)
+        } else {
+            applyDisplayMode()
+        }
         
         // Notify orientation-locking controllers to re-evaluate
         NotificationCenter.default.post(name: Notification.Name("ExternalDisplayModeChanged"), object: nil)
     }
     
-    private func handleExternalDisplayDisconnected() {
+    func handleExternalDisplayDisconnected() {
         print("External display disconnected")
         
         // Clean up external window
@@ -140,7 +145,7 @@ class ExternalDisplayManager: ObservableObject {
         NotificationCenter.default.post(name: Notification.Name("ExternalDisplayModeChanged"), object: nil)
     }
     
-    private func applyDisplayMode() {
+    func applyDisplayMode() {
         guard let screen = externalScreen else { return }
         
         switch displayMode {
@@ -181,19 +186,25 @@ class ExternalDisplayManager: ObservableObject {
     }
     
     private func setupExternalWindow(on screen: UIScreen) {
-        // Remove old window if exists
-        externalWindow?.isHidden = true
-        externalWindow = nil
+        // Reuse the existing external window if the scene delegate already made one.
+        if let existing = externalWindow {
+            if existing.rootViewController == nil {
+                existing.rootViewController = UIHostingController(
+                    rootView: ExternalDisplayView(displayManager: self)
+                )
+            }
+            existing.isHidden = false
+            print("External window reused: \(screen.bounds)")
+            return
+        }
         
-        // Create new window for external display
-        // Use the external screen's coordinate space
-        let window = UIWindow(frame: screen.bounds)
-        
-        // Modern approach for iOS 13+: find or create window scene for external screen
-        if let windowScene = UIApplication.shared.connectedScenes
+        // Modern approach for iOS 13+: find the window scene created for the
+        // external screen (requires UIApplicationSupportsMultipleScenes = true).
+        guard let windowScene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
-            .first(where: { $0.screen == screen }) {
-            window.windowScene = windowScene
+            .first(where: { $0.screen == screen }) else {
+            print("No window scene available for external screen yet")
+            return
         }
         
         // Create a hosting controller with MetalView for external display
@@ -201,6 +212,7 @@ class ExternalDisplayManager: ObservableObject {
             rootView: ExternalDisplayView(displayManager: self)
         )
         
+        let window = UIWindow(windowScene: windowScene)
         window.rootViewController = hostingController
         window.isHidden = false
         

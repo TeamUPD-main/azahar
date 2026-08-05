@@ -6,6 +6,7 @@ import SwiftUI
 
 @main
 struct AzaharApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
     @StateObject private var jitContext = JITEnableContext.shared
     @Environment(\.scenePhase) private var scenePhase
