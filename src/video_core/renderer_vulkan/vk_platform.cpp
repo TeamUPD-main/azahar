@@ -431,8 +431,8 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
 
         return instance;
     } catch (const vk::SystemError& e) {
-        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with vk::SystemError: {} (result: {})", 
-                  e.what(), vk::to_string(e.code()));
+        LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with vk::SystemError: {} (error code: {})", 
+                  e.what(), e.code().value());
         throw;
     } catch (const std::exception& e) {
         LOG_ERROR(Render_Vulkan, "vk::createInstanceUnique failed with exception: {}", e.what());
