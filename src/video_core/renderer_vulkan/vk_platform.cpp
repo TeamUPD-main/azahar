@@ -25,9 +25,62 @@
 #include "core/frontend/emu_window.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 
+#if defined(CITRA_IOS)
+#include <dispatch/dispatch.h>
+#include <pthread.h>
+#endif
+
 namespace Vulkan {
 
 namespace {
+
+#if defined(CITRA_IOS)
+// MoltenVK on iOS requires all Vulkan operations to happen on the main thread
+// because Metal API calls must be on the main thread. This helper ensures thread safety.
+template <typename Func>
+auto EnsureMainThread(Func&& func) -> decltype(func()) {
+    using ReturnType = decltype(func());
+    
+    // Check if we're already on the main thread
+    static pthread_t main_thread_id = pthread_main_np() ? pthread_self() : pthread_t{};
+    if (main_thread_id == pthread_t{}) {
+        main_thread_id = pthread_self();
+    }
+    
+    if (pthread_equal(pthread_self(), main_thread_id)) {
+        // Already on main thread, execute directly
+        LOG_DEBUG(Render_Vulkan, "Vulkan operation executing on main thread (already main)");
+        return func();
+    }
+    
+    // Not on main thread, dispatch synchronously to main queue
+    LOG_INFO(Render_Vulkan, "Vulkan operation dispatched to main thread from background thread");
+    
+    if constexpr (std::is_void_v<ReturnType>) {
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            func();
+        });
+    } else {
+        __block ReturnType result;
+        __block std::exception_ptr exception;
+        
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            try {
+                result = func();
+            } catch (...) {
+                exception = std::current_exception();
+            }
+        });
+        
+        if (exception) {
+            std::rethrow_exception(exception);
+        }
+        return result;
+    }
+}
+#endif
+
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(
     vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type,
     const vk::DebugUtilsMessengerCallbackDataEXT* callback_data, void* user_data) {
@@ -163,9 +216,15 @@ std::shared_ptr<Common::DynamicLibrary> OpenLibrary(
 }
 
 vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& emu_window) {
-    const auto& window_info = emu_window.GetWindowInfo();
-    vk::SurfaceKHR surface{};
-    vk::Result res;
+#if defined(CITRA_IOS)
+    // MoltenVK on iOS requires surface creation on the main thread
+    // because CAMetalLayer operations must be on the main thread
+    return EnsureMainThread([&]() -> vk::SurfaceKHR {
+        LOG_INFO(Render_Vulkan, "Creating Vulkan surface on main thread (iOS requirement)");
+#endif
+        const auto& window_info = emu_window.GetWindowInfo();
+        vk::SurfaceKHR surface{};
+        vk::Result res;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     if (window_info.type == Frontend::WindowSystemType::Windows) {
@@ -253,6 +312,9 @@ vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& e
     }
 
     return surface;
+#if defined(CITRA_IOS)
+    }); // End of EnsureMainThread lambda
+#endif
 }
 
 std::vector<const char*> GetInstanceExtensions(Frontend::WindowSystemType window_type,
@@ -451,7 +513,16 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
 
     LOG_INFO(Render_Vulkan, "Creating Vulkan instance...");
     try {
+#if defined(CITRA_IOS)
+        // MoltenVK on iOS requires vkCreateInstance to be called on the main thread
+        // because it initializes Metal resources that must be on the main thread
+        auto instance = EnsureMainThread([&]() {
+            LOG_INFO(Render_Vulkan, "Calling vkCreateInstance on main thread (iOS requirement)");
+            return vk::createInstanceUnique(instance_ci);
+        });
+#else
         auto instance = vk::createInstanceUnique(instance_ci);
+#endif
         LOG_INFO(Render_Vulkan, "Vulkan instance created successfully!");
 
         VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance);
