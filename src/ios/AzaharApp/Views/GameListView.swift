@@ -119,6 +119,15 @@ struct GameListView: View {
                                     Label("Play", systemImage: "play.fill")
                                 }
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    selectedGameForProperties = game
+                                    showingProperties = true
+                                } label: {
+                                    Label("Properties", systemImage: "info.circle")
+                                }
+                                .tint(.blue)
+                            }
                         }
                     } header: {
                         if !appState.games.isEmpty {
