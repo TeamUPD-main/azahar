@@ -78,6 +78,7 @@ set(AZAHAR_SWIFT_SOURCES
     AzaharApp/Views/AmiiboFilePicker.swift
     AzaharApp/Views/SaveStateDialog.swift
     AzaharApp/Views/Settings/SettingsView.swift
+    AzaharApp/Views/Settings/SystemInfoView.swift
     AzaharApp/Views/Settings/JITSettingsView.swift
     AzaharApp/Views/Settings/LogViewerView.swift
     AzaharApp/Views/Applets/SoftwareKeyboardView.swift
@@ -194,7 +195,8 @@ if(IOS_CODE_SIGN_IDENTITY)
     endif()
     if(IOS_PROVISIONING_PROFILE_SPECIFIER)
         set_target_properties(azahar_ios_app PROPERTIES
-            XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "${IOS_PROVISIONING_PROFILE_SPECIFIER}"
+            XCODE_ATTRIBUTE_INFOPLIST_KEY_UIAPPLICATIONSCENEMANIFEST_GENERATION "YES"
+            XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/AzaharApp/Resources/Azahar.entitlements"
         )
     endif()
 else()
