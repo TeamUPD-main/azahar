@@ -250,6 +250,19 @@ if (ENABLE_VULKAN)
             XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY YES
         )
         message(STATUS "MoltenVK framework will be embedded in iOS app bundle")
+        
+        # Also copy the framework binary as a standalone dylib for maximum compatibility
+        # This provides a fallback if framework loading fails
+        set(MOLTENVK_BINARY "${MOLTENVK_FRAMEWORK}/MoltenVK")
+        if (EXISTS "${MOLTENVK_BINARY}")
+            add_custom_command(TARGET azahar_ios_app POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy
+                    "${MOLTENVK_BINARY}"
+                    "$<TARGET_BUNDLE_DIR:azahar_ios_app>/Frameworks/libMoltenVK.dylib"
+                COMMENT "Copying MoltenVK binary as dylib fallback"
+            )
+            message(STATUS "MoltenVK dylib fallback will also be copied")
+        endif()
     else()
         message(WARNING "MoltenVK framework not found at ${MOLTENVK_FRAMEWORK}")
     endif()

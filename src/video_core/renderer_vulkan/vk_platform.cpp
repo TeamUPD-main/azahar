@@ -111,12 +111,40 @@ std::shared_ptr<Common::DynamicLibrary> OpenLibrary(
     if (!library->Load(filename)) {
         LOG_WARNING(Render_Vulkan, "Failed to load {}, falling back to MoltenVK", filename);
         // Fall back to directly loading bundled MoltenVK library.
-        const std::string mvk_filename = Common::DynamicLibrary::GetLibraryName("MoltenVK");
-        LOG_INFO(Render_Vulkan, "Attempting to load MoltenVK library: {}", mvk_filename);
-        if (library->Load(mvk_filename)) {
-            LOG_INFO(Render_Vulkan, "Successfully loaded MoltenVK library");
-        } else {
-            LOG_ERROR(Render_Vulkan, "Failed to load MoltenVK library: {}", mvk_filename);
+        // Try multiple paths with fallbacks for maximum compatibility.
+        bool loaded = false;
+        
+#if defined(CITRA_IOS)
+        // iOS: Try framework path first (standard iOS embedding)
+        std::vector<std::string> mvk_paths = {
+            "@executable_path/Frameworks/MoltenVK.framework/MoltenVK",
+            "@executable_path/Frameworks/libMoltenVK.dylib",
+            "MoltenVK",
+            "libMoltenVK.dylib"
+        };
+#else
+        // macOS: Try standard dylib paths
+        std::vector<std::string> mvk_paths = {
+            Common::DynamicLibrary::GetLibraryName("MoltenVK"),
+            "@executable_path/../Frameworks/MoltenVK.framework/MoltenVK",
+            "@executable_path/libMoltenVK.dylib",
+            "MoltenVK"
+        };
+#endif
+        
+        for (const auto& mvk_path : mvk_paths) {
+            LOG_INFO(Render_Vulkan, "Attempting to load MoltenVK: {}", mvk_path);
+            if (library->Load(mvk_path)) {
+                LOG_INFO(Render_Vulkan, "Successfully loaded MoltenVK from: {}", mvk_path);
+                loaded = true;
+                break;
+            } else {
+                LOG_DEBUG(Render_Vulkan, "Failed to load MoltenVK from: {}", mvk_path);
+            }
+        }
+        
+        if (!loaded) {
+            LOG_ERROR(Render_Vulkan, "Failed to load MoltenVK from all attempted paths");
         }
     } else {
         LOG_INFO(Render_Vulkan, "Successfully loaded Vulkan library: {}", filename);
