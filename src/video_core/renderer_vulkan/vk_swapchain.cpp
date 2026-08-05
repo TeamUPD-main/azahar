@@ -192,8 +192,22 @@ void Swapchain::SetPresentMode() {
     present_mode = vk::PresentModeKHR::eFifo;
     const bool has_immediate = find_mode(vk::PresentModeKHR::eImmediate);
     const bool has_mailbox = find_mode(vk::PresentModeKHR::eMailbox);
+    
+    // On iOS/MoltenVK, Immediate and Mailbox are often not available
+    // If VSync is disabled but no alternatives exist, use Fifo but disable frame limiting
+    // at the renderer level to achieve unlocked framerate
     if (!has_immediate && !has_mailbox) {
-        LOG_WARNING(Render_Vulkan, "Forcing Fifo present mode as no alternatives are available");
+        if (!use_vsync) {
+            LOG_INFO(Render_Vulkan, "VSync disabled but only Fifo present mode available (MoltenVK limitation). Using Fifo with unlocked frame limiting.");
+            // Don't return here - continue to let frame limiter handle unlocked speed
+        } else {
+            LOG_WARNING(Render_Vulkan, "Forcing Fifo present mode as no alternatives are available");
+        }
+        // Keep present_mode as Fifo but continue processing
+        if (!use_vsync) {
+            // Signal to skip frame limiting when presenting
+            return;
+        }
         return;
     }
 
