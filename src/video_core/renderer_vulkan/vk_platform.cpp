@@ -406,10 +406,22 @@ std::vector<const char*> GetInstanceExtensions(Frontend::WindowSystemType window
     return extensions;
 }
 
-vk::InstanceCreateFlags GetInstanceFlags() {
+vk::InstanceCreateFlags GetInstanceFlags(const std::vector<const char*>& extensions) {
 #if defined(__APPLE__)
-    return vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+    // Only set portability flag if the extension is actually available
+    const auto it = std::find_if(extensions.begin(), extensions.end(), [](const char* ext) {
+        return std::strcmp(ext, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0;
+    });
+    
+    if (it != extensions.end()) {
+        LOG_INFO(Render_Vulkan, "Portability extension available, setting enumeration flag");
+        return vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+    } else {
+        LOG_INFO(Render_Vulkan, "Portability extension not available, skipping flag");
+        return static_cast<vk::InstanceCreateFlags>(0);
+    }
 #else
+    (void)extensions;
     return static_cast<vk::InstanceCreateFlags>(0);
 #endif
 }
@@ -470,16 +482,23 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
     };
 
     boost::container::static_vector<const char*, 2> layers;
+#if defined(CITRA_IOS)
+    // Validation layers are not available on iOS (MoltenVK doesn't ship them)
+    if (enable_validation) {
+        LOG_WARNING(Render_Vulkan, "Validation layers requested but not available on iOS - skipping");
+    }
+#else
     if (enable_validation) {
         layers.push_back("VK_LAYER_KHRONOS_validation");
         LOG_INFO(Render_Vulkan, "Validation layer enabled");
     }
+#endif
     if (dump_command_buffers) {
         layers.push_back("VK_LAYER_LUNARG_api_dump");
         LOG_INFO(Render_Vulkan, "API dump layer enabled");
     }
 
-    const auto instance_flags = GetInstanceFlags();
+    const auto instance_flags = GetInstanceFlags(extensions);
     LOG_INFO(Render_Vulkan, "Instance flags: 0x{:x}", static_cast<uint32_t>(instance_flags));
     
     vk::InstanceCreateInfo instance_ci = {
