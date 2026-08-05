@@ -58,17 +58,11 @@ auto EnsureMainThread(Func&& func) -> decltype(func()) {
     LOG_INFO(Render_Vulkan, "Vulkan operation dispatched to main thread from background thread");
     
     if constexpr (std::is_void_v<ReturnType>) {
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            func();
-        });
-    } else {
-        // For move-only types (like vk::UniqueHandle), use std::optional to avoid __block copy issues
-        std::optional<ReturnType> result;
-        std::exception_ptr exception;
+        __block std::exception_ptr exception;
         
         dispatch_sync(dispatch_get_main_queue(), ^{
             try {
-                result.emplace(func());
+                func();
             } catch (...) {
                 exception = std::current_exception();
             }
@@ -77,7 +71,28 @@ auto EnsureMainThread(Func&& func) -> decltype(func()) {
         if (exception) {
             std::rethrow_exception(exception);
         }
-        return std::move(*result);
+    } else {
+        // For move-only types (like vk::UniqueHandle), use pointer + manual memory management
+        // Cannot use __block with move-only types, and blocks capture by const reference
+        ReturnType* result_ptr = nullptr;
+        __block std::exception_ptr exception;
+        
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            try {
+                result_ptr = new ReturnType(func());
+            } catch (...) {
+                exception = std::current_exception();
+            }
+        });
+        
+        if (exception) {
+            delete result_ptr;
+            std::rethrow_exception(exception);
+        }
+        
+        ReturnType result = std::move(*result_ptr);
+        delete result_ptr;
+        return result;
     }
 }
 #endif
