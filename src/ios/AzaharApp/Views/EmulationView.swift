@@ -9,6 +9,7 @@ struct EmulationView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: EmulationViewModel
     @StateObject private var externalDisplayManager = ExternalDisplayManager.shared
+    @StateObject private var gamepadManager = GamepadManager()
     @State private var showPauseMenu = false
     @State private var showDisplayModeMenu = false
     @State private var isLandscape = UIDevice.current.orientation.isLandscape

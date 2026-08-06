@@ -13,12 +13,15 @@ final class GamepadManager: ObservableObject {
     private weak var currentController: GCController?
 
     init() {
+        AppLogger.info("[GamepadManager] Initializing gamepad support")
+        
         controllerObserver = NotificationCenter.default.addObserver(
             forName: .GCControllerDidConnect,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let controller = notification.object as? GCController else { return }
+            AppLogger.info("[GamepadManager] Controller connected: \(controller.vendorName ?? "Unknown")")
             self?.setupController(controller)
         }
 
@@ -26,13 +29,19 @@ final class GamepadManager: ObservableObject {
             forName: .GCControllerDidDisconnect,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
+            if let controller = notification.object as? GCController {
+                AppLogger.info("[GamepadManager] Controller disconnected: \(controller.vendorName ?? "Unknown")")
+            }
             self?.currentController = nil
             self?.releaseAllButtons()
         }
 
         // Connect already-attached controllers
-        for controller in GCController.controllers() {
+        let existingControllers = GCController.controllers()
+        AppLogger.info("[GamepadManager] Found \(existingControllers.count) existing controller(s)")
+        for controller in existingControllers {
+            AppLogger.info("[GamepadManager] Connecting to: \(controller.vendorName ?? "Unknown")")
             setupController(controller)
         }
     }
@@ -45,14 +54,21 @@ final class GamepadManager: ObservableObject {
 
     private func setupController(_ controller: GCController) {
         currentController = controller
+        AppLogger.info("[GamepadManager] Setting up controller: \(controller.vendorName ?? "Unknown")")
 
         guard let extendedGamepad = controller.extendedGamepad else {
+            AppLogger.warning("[GamepadManager] No extendedGamepad profile available")
             // Try micro gamepad (Apple TV Remote)
             if let microGamepad = controller.microGamepad {
+                AppLogger.info("[GamepadManager] Using microGamepad profile instead")
                 setupMicroGamepad(microGamepad)
+            } else {
+                AppLogger.error("GamepadManager", message: "No compatible gamepad profile found!")
             }
             return
         }
+        
+        AppLogger.info("[GamepadManager] Extended gamepad profile found, registering button handlers")
 
         // Button presses
         extendedGamepad.buttonA.pressedChangedHandler = { _, _, pressed in
