@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 import UIKit
+import SwiftUI
 
 /// App delegate for scene configuration. This app is SwiftUI-driven; the
 /// delegate only intercepts scene connections so that external displays
@@ -12,10 +13,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
+    ) -> UISceneConfiguration? {
         // External displays get their own scene delegate so we can render
         // the 3DS screen(s) fullscreen on them.
-        if connectingSceneSession.role == UISceneSession.Role.externalDisplay {
+        // Note: UISceneSession.Role.externalDisplay was removed in iOS 13+
+        // Instead, check if the session's configuration name matches our external config
+        if connectingSceneSession.configuration.name == "External Display Configuration" {
             let configuration = UISceneConfiguration(
                 name: "External Display Configuration",
                 sessionRole: connectingSceneSession.role

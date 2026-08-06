@@ -48,16 +48,17 @@ struct EmulationHostView: UIViewControllerRepresentable {
     @EnvironmentObject var appState: AppState
 
     func makeUIViewController(context: Context) -> EmulationHostController {
-        // Inject the environment object explicitly since UIHostingController
-        // created directly (not via a SwiftUI modifier) doesn't inherit it.
-        let controller = EmulationHostController(
-            rootView: EmulationView(game: game).environmentObject(appState)
-        )
+        // Pass the game to the EmulationView; the environment object is
+        // inherited from the SwiftUI hierarchy
+        let emulationView = EmulationView(game: game)
+        let controller = EmulationHostController(rootView: emulationView)
+        controller.appState = appState
         return controller
     }
 
     func updateUIViewController(_ uiViewController: EmulationHostController, context: Context) {
-        uiViewController.rootView = EmulationView(game: game).environmentObject(appState)
+        // Update if needed
+        uiViewController.appState = appState
     }
 }
 
