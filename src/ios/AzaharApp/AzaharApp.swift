@@ -85,7 +85,6 @@ struct AzaharApp: App {
         }
     }
 }
-
 /// Top-level observable state for the application.
 @MainActor
 final class AppState: ObservableObject {
