@@ -53,7 +53,7 @@ struct AzaharApp: App {
                         WhatsNewView(entry: entry) {
                             WhatsNewManager.shared.markWhatsNewAsSeen()
                             showWhatsNew = false
-
+                        }
                     }
                 }
         }
