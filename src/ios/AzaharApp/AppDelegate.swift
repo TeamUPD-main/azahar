@@ -5,31 +5,11 @@
 import UIKit
 import SwiftUI
 
-/// App delegate for scene configuration. This app is SwiftUI-driven; the
-/// delegate only intercepts scene connections so that external displays
-/// (AirPlay/HDMI/USB-C) get their own window scene delegate.
+/// App delegate for external display handling. This app is SwiftUI-driven; the
+/// delegate provides the ExternalSceneDelegate for UIKit scene management.
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        configurationForConnecting connectingSceneSession: UISceneSession,
-        options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
-        // External displays get their own scene delegate so we can render
-        // the 3DS screen(s) fullscreen on them.
-        // Check if the screen is not the main screen to identify external display
-        if let windowScene = connectingSceneSession.scene as? UIWindowScene,
-           windowScene.screen != UIScreen.main {
-            let configuration = UISceneConfiguration(
-                name: "External Display Configuration",
-                sessionRole: connectingSceneSession.role
-            )
-            configuration.delegateClass = ExternalSceneDelegate.self
-            return configuration
-        }
-
-        // Return the existing configuration for the main scene
-        return connectingSceneSession.configuration
-    }
+    // No need to override application(_:configurationForConnecting:options:)
+    // Let SwiftUI handle the default configuration
 }
 
 /// Handles the UIWindowScene that UIKit creates for a connected external
