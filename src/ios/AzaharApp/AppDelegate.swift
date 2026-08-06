@@ -13,12 +13,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration? {
+    ) -> UISceneConfiguration {
         // External displays get their own scene delegate so we can render
         // the 3DS screen(s) fullscreen on them.
-        // Note: UISceneSession.Role.externalDisplay was removed in iOS 13+
-        // Instead, check if the session's configuration name matches our external config
-        if connectingSceneSession.configuration.name == "External Display Configuration" {
+        // Check if the screen is not the main screen to identify external display
+        if let windowScene = connectingSceneSession.scene as? UIWindowScene,
+           windowScene.screen != UIScreen.main {
             let configuration = UISceneConfiguration(
                 name: "External Display Configuration",
                 sessionRole: connectingSceneSession.role
@@ -27,9 +27,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             return configuration
         }
 
-        // Return nil for the main scene so the system uses SwiftUI's default
-        // configuration for the WindowGroup.
-        return nil
+        // Return the existing configuration for the main scene
+        return connectingSceneSession.configuration
     }
 }
 
