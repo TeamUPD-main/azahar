@@ -11,7 +11,7 @@
 #include <utility>
 #include "common/common_types.h"
 #include "core/hle/service/service.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace FileSys {
 class ArchiveBackend;

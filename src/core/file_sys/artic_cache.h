@@ -16,7 +16,7 @@
 #include "common/static_lru_cache.h"
 #include "core/file_sys/archive_backend.h"
 #include "core/hle/result.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace FileSys {
 class ArticCache {

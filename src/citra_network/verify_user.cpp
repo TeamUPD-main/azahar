@@ -2,7 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include "network/verify_user.h"
+#include "citra_network/verify_user.h"
 
 namespace Network::VerifyUser {
 

@@ -10,8 +10,8 @@
 #include <thread>
 #include "common/assert.h"
 #include "enet/enet.h"
-#include "network/packet.h"
-#include "network/room_member.h"
+#include "citra_network/packet.h"
+#include "citra_network/room_member.h"
 
 namespace Network {
 

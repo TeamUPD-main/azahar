@@ -5,7 +5,7 @@
 #pragma once
 
 #include <fmt/format.h>
-#include "network/verify_user.h"
+#include "citra_network/verify_user.h"
 #include "web_service/web_backend.h"
 
 namespace WebService {

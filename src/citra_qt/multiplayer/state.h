@@ -5,8 +5,8 @@
 #pragma once
 
 #include <QWidget>
-#include "network/announce_multiplayer_session.h"
-#include "network/network.h"
+#include "citra_network/announce_multiplayer_session.h"
+#include "citra_network/network.h"
 
 class QStandardItemModel;
 class Lobby;

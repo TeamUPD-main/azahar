@@ -9,7 +9,7 @@
 #endif
 #include <cstring>
 #include <string>
-#include "network/packet.h"
+#include "citra_network/packet.h"
 
 namespace Network {
 

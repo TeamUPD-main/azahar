@@ -24,7 +24,7 @@
 #include "core/hle/kernel/mutex.h"
 #include "core/hle/result.h"
 #include "core/hle/service/service.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace Core {
 class System;

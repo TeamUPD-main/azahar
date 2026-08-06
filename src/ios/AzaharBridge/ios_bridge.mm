@@ -48,7 +48,7 @@
 #include "ios/AzaharBridge/camera_ios.h"
 #include "ios/AzaharBridge/applets_ios.h"
 #include "ios/AzaharBridge/azahar_ios.h"
-#include "network/announce_multiplayer_session.h"
+#include "citra_network/announce_multiplayer_session.h"
 #include "video_core/gpu.h"
 #include "video_core/renderer_base.h"
 #include "input_common/main.h"

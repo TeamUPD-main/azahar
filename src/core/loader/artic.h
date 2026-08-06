@@ -11,7 +11,7 @@
 #include "core/file_sys/ncch_container.h"
 #include "core/hle/service/fs/fs_user.h"
 #include "core/loader/loader.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace Loader {
 

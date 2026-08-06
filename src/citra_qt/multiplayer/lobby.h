@@ -11,8 +11,8 @@
 #include <QStandardItemModel>
 #include "citra_qt/multiplayer/validation.h"
 #include "common/announce_multiplayer_room.h"
-#include "network/announce_multiplayer_session.h"
-#include "network/room_member.h"
+#include "citra_network/announce_multiplayer_session.h"
+#include "citra_network/room_member.h"
 
 namespace Ui {
 class Lobby;

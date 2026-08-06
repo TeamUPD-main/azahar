@@ -7,8 +7,8 @@
 #include <memory>
 #include <optional>
 #include <QDialog>
-#include "network/room.h"
-#include "network/room_member.h"
+#include "citra_network/room.h"
+#include "citra_network/room_member.h"
 
 namespace Ui {
 class ModerationDialog;

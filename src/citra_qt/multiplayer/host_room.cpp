@@ -21,7 +21,7 @@
 #include "common/logging/log.h"
 #include "core/hle/service/cfg/cfg.h"
 #include "core/hle/service/fs/archive.h"
-#include "network/announce_multiplayer_session.h"
+#include "citra_network/announce_multiplayer_session.h"
 #include "ui_host_room.h"
 #ifdef ENABLE_WEB_SERVICE
 #include "web_service/verify_user_jwt.h"

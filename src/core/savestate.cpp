@@ -17,7 +17,7 @@
 #include "core/movie.h"
 #include "core/savestate.h"
 #include "core/savestate_data.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 
 #ifdef ENABLE_RETRO_ACHIEVEMENTS
 #include "retro_achievements/retro_achievements.h"

@@ -14,7 +14,7 @@
 #include "common/file_util.h"
 #include "common/static_lru_cache.h"
 #include "core/file_sys/artic_cache.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace Loader {
 enum class ResultStatus;

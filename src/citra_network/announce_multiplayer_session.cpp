@@ -8,7 +8,7 @@
 #include "announce_multiplayer_session.h"
 #include "common/announce_multiplayer_room.h"
 #include "common/assert.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 
 #ifdef ENABLE_WEB_SERVICE
 #include "web_service/announce_room_json.h"

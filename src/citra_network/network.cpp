@@ -5,7 +5,7 @@
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "enet/enet.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 
 namespace Network {
 

@@ -1,4 +1,4 @@
-add_library(network STATIC EXCLUDE_FROM_ALL
+add_library(citra_network STATIC EXCLUDE_FROM_ALL
     announce_multiplayer_session.cpp
     announce_multiplayer_session.h
     artic_base/artic_base_client.cpp
@@ -19,14 +19,14 @@ add_library(network STATIC EXCLUDE_FROM_ALL
     verify_user.h
 )
 
-create_target_directory_groups(network)
+create_target_directory_groups(citra_network)
 
 if (ENABLE_WEB_SERVICE)
-    target_link_libraries(network PRIVATE web_service)
+    target_link_libraries(citra_network PRIVATE web_service)
 endif()
 
-target_link_libraries(network PRIVATE citra_common enet Boost::serialization httplib)
+target_link_libraries(citra_network PRIVATE citra_common enet Boost::serialization httplib)
 
 if (CITRA_USE_PRECOMPILED_HEADERS)
-    target_precompile_headers(network PRIVATE precompiled_headers.h)
+    target_precompile_headers(citra_network PRIVATE precompiled_headers.h)
 endif()

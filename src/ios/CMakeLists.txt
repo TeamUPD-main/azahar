@@ -42,7 +42,7 @@ target_include_directories(azahar_ios PUBLIC
 )
 
 target_link_libraries(azahar_ios PRIVATE
-    citra_common citra_core video_core audio_core input_common network inih
+    citra_common citra_core video_core audio_core input_common citra_network inih
 )
 
 # Define CITRA_IOS preprocessor macro so C++ code can detect iOS platform

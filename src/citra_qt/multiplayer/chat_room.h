@@ -11,7 +11,7 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QVariant>
-#include "network/network.h"
+#include "citra_network/network.h"
 
 namespace Ui {
 class ChatRoom;

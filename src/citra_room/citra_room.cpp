@@ -24,10 +24,10 @@
 #include "common/logging/log.h"
 #include "common/scm_rev.h"
 #include "common/string_util.h"
-#include "network/announce_multiplayer_session.h"
-#include "network/network.h"
-#include "network/room.h"
-#include "network/verify_user.h"
+#include "citra_network/announce_multiplayer_session.h"
+#include "citra_network/network.h"
+#include "citra_network/room.h"
+#include "citra_network/verify_user.h"
 
 #ifdef ENABLE_WEB_SERVICE
 #include "web_service/verify_user_jwt.h"

@@ -15,7 +15,7 @@
 #include "utility"
 
 #include "artic_base_common.h"
-#include "network/socket_manager.h"
+#include "citra_network/socket_manager.h"
 
 #ifdef _WIN32
 using SocketHolder = unsigned long long;

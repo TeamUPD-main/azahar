@@ -37,7 +37,7 @@
 #include "core/loader/smdh.h"
 #include "core/memory.h"
 #include "core/system_titles.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 
 namespace Loader {
 

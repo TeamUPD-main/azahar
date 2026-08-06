@@ -11,9 +11,9 @@
 #include <thread>
 #include "common/logging/log.h"
 #include "enet/enet.h"
-#include "network/packet.h"
-#include "network/room.h"
-#include "network/verify_user.h"
+#include "citra_network/packet.h"
+#include "citra_network/room.h"
+#include "citra_network/verify_user.h"
 
 namespace Network {
 

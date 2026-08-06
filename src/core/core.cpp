@@ -54,7 +54,7 @@
 #ifdef ENABLE_SCRIPTING
 #include "core/rpc/server.h"
 #endif
-#include "network/network.h"
+#include "citra_network/network.h"
 #ifdef ENABLE_RETRO_ACHIEVEMENTS
 #include "retro_achievements/client.h"
 #endif

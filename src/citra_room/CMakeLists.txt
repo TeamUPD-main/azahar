@@ -9,7 +9,7 @@ add_library(citra_room STATIC EXCLUDE_FROM_ALL
 
 create_target_directory_groups(citra_room)
 
-target_link_libraries(citra_room PRIVATE citra_common network)
+target_link_libraries(citra_room PRIVATE citra_common citra_network)
 if (ENABLE_WEB_SERVICE)
     target_link_libraries(citra_room PRIVATE web_service)
 endif()

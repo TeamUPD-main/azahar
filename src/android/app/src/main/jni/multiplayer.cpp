@@ -14,7 +14,7 @@
 #include "id_cache.h"
 #include "jni/android_common/android_common.h"
 #include "multiplayer.h"
-#include "network/announce_multiplayer_session.h"
+#include "citra_network/announce_multiplayer_session.h"
 
 AndroidMultiplayer::AndroidMultiplayer(Core::System& system_,
                                        std::shared_ptr<Network::AnnounceMultiplayerSession> session)

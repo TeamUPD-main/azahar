@@ -5,8 +5,8 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include "citra_qt/multiplayer/moderation_dialog.h"
-#include "network/network.h"
-#include "network/room_member.h"
+#include "citra_network/network.h"
+#include "citra_network/room_member.h"
 #include "ui_moderation_dialog.h"
 
 namespace Column {

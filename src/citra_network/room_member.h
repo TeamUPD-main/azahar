@@ -10,7 +10,7 @@
 #include <vector>
 #include <boost/serialization/vector.hpp>
 #include "common/common_types.h"
-#include "network/room.h"
+#include "citra_network/room.h"
 
 namespace Network {
 

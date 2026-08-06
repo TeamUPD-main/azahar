@@ -14,7 +14,7 @@
 #include "jni/emu_window/emu_window.h"
 #include "jni/id_cache.h"
 #include "jni/input_manager.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 #include "video_core/renderer_base.h"
 
 bool EmuWindow_Android::OnSurfaceChanged(ANativeWindow* surface) {

@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include "common/common_types.h"
-#include "network/verify_user.h"
+#include "citra_network/verify_user.h"
 
 namespace Network {
 

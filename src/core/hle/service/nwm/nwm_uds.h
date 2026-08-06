@@ -20,7 +20,7 @@
 #include "common/swap.h"
 #include "core/hle/service/nwm/uds_common.h"
 #include "core/hle/service/service.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 
 namespace Core {
 class System;

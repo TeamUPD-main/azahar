@@ -18,7 +18,7 @@
 #include "core/core_timing.h"
 #include "core/frontend/input.h"
 #include "core/hle/service/service.h"
-#include "network/artic_base/artic_base_client.h"
+#include "citra_network/artic_base/artic_base_client.h"
 
 namespace Kernel {
 class Event;

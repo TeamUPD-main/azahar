@@ -14,7 +14,7 @@
 #include "citra_qt/multiplayer/validation.h"
 #include "citra_qt/uisettings.h"
 #include "core/hle/service/cfg/cfg.h"
-#include "network/network.h"
+#include "citra_network/network.h"
 #include "ui_direct_connect.h"
 
 enum class ConnectionType : u8 { TraversalServer, IP };

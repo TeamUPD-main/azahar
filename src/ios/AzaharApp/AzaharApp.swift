@@ -16,16 +16,6 @@ struct AzaharApp: App {
     @State private var showWhatsNew = false
 
     init() {
-        // Configure AVAudioSession for OpenAL
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Failed to set audio session category: \(error)")
-        }
-    }
-
-import AVFoundation
         // Install iOS 26 crash prevention handlers
         installJIT26BreakpointHandler()
         
@@ -63,7 +53,7 @@ import AVFoundation
                         WhatsNewView(entry: entry) {
                             WhatsNewManager.shared.markWhatsNewAsSeen()
                             showWhatsNew = false
-                        }
+
                     }
                 }
         }
